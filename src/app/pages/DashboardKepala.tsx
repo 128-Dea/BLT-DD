@@ -63,20 +63,29 @@ export function DashboardKepala() {
     [],
   );
 
-  useEffect(() => {
-    loadData();
-  }, []);
+useEffect(() => {
+  loadData();
+}, []);
 
-  const loadData = () => {
-    const data = JSON.parse(
-      localStorage.getItem("dataWarga") || "[]",
-    );
-    // Filter hanya yang sudah terkirim
-    const sentData = data.filter(
-      (w: PenilaianData) => w.terkirim && w.nilaiAkhir !== null,
-    );
-    setDataWarga(sentData);
-  };
+const loadData = () => {
+  fetch("http://127.0.0.1:8000/api/warga/")
+    .then(res => res.json())
+    .then(data => {
+  if (!Array.isArray(data)) {
+    console.error("Data bukan array:", data);
+    return;
+  }
+
+  const mapped = data.map((item) => ({
+    ...item,
+    jumlahAnggota: item.jumlah_anggota,
+    jumlahTanggungan: item.jumlah_tanggungan,
+    statusApproval: "Pending",
+    nilaiAkhir: 0,
+  }));
+
+  setDataWarga(mapped);
+});}
 
   const currentUser = JSON.parse(
     localStorage.getItem("currentUser") || "{}",

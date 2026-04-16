@@ -29,10 +29,10 @@ export function DashboardPerangkat() {
   const [weeklyActivity, setWeeklyActivity] = useState<{ hari: string; aktivitas: number }[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ bulan: string; penilaian: number; disetujui: number }[]>([]);
 
-  useEffect(() => {
-    calculateStats();
-    loadChartData();
-  }, []);
+useEffect(() => {
+  fetchData();
+  loadChartData();
+}, []);
 
   const loadChartData = () => {
     const weekly = getWeeklyActivity();
@@ -41,27 +41,42 @@ export function DashboardPerangkat() {
     setMonthlyData(monthly);
   };
 
-  const calculateStats = () => {
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    
-    const totalWarga = data.length;
-    const penilaianSelesai = data.filter((w: any) => w.nilaiAkhir !== null).length;
-    const menungguApproval = data.filter((w: any) => 
-      w.terkirim && w.nilaiAkhir !== null && (w.statusApproval === 'Pending' || !w.statusApproval)
-    ).length;
-    const disetujuiBulanIni = data.filter((w: any) => w.statusApproval === 'Disetujui').length;
-    const layak = data.filter((w: any) => w.status === 'Layak' && w.nilaiAkhir !== null).length;
-    const tidakLayak = data.filter((w: any) => w.status === 'Tidak Layak' && w.nilaiAkhir !== null).length;
+const fetchData = () => {
+  fetch("http://127.0.0.1:8000/api/warga/")
+    .then(res => res.json())
+    .then(data => {
+      console.log("Data backend:", data);
 
-    setStats({
-      totalWarga,
-      penilaianSelesai,
-      menungguApproval,
-      disetujuiBulanIni,
-      layak,
-      tidakLayak
-    });
-  };
+      const totalWarga = data.length;
+      const penilaianSelesai = data.filter((w: any) => w.nilai_akhir !== null).length;
+
+      const menungguApproval = data.filter((w: any) =>
+        w.status_approval === "Pending"
+      ).length;
+
+      const disetujuiBulanIni = data.filter((w: any) =>
+        w.status_approval === "Disetujui"
+      ).length;
+
+      const layak = data.filter((w: any) =>
+        w.status === "Layak"
+      ).length;
+
+      const tidakLayak = data.filter((w: any) =>
+        w.status === "Tidak Layak"
+      ).length;
+
+      setStats({
+        totalWarga,
+        penilaianSelesai,
+        menungguApproval,
+        disetujuiBulanIni,
+        layak,
+        tidakLayak
+      });
+    })
+    .catch(err => console.error(err));
+};
 
   const handleLogout = () => {
     if (confirm('Apakah Anda yakin ingin logout?')) {
