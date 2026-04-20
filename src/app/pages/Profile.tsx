@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, User, Mail, Briefcase, Calendar, Edit2, Save, Trash2, Camera } from 'lucide-react';
+import { updateUserProfile } from '../utils/auth';
 
 export function Profile() {
   const navigate = useNavigate();
@@ -35,20 +36,22 @@ export function Profile() {
     }
   };
   
-  const handleSave = () => {
-    if (confirm('Simpan perubahan profil?')) {
-      const updatedUser = { ...currentUser, ...formData, profilePhoto };
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      
-      // Update di database users juga
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const updatedUsers = users.map((u: any) => 
-        u.email === currentUser.email ? updatedUser : u
-      );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      
-      alert('✓ Profil berhasil diperbarui!');
+  const handleSave = async () => {
+    if (!confirm('Simpan perubahan profil?')) {
+      return;
+    }
+
+    try {
+      await updateUserProfile(currentUser.uid, {
+        nama: formData.nama,
+        profilePhoto
+      });
+
+      alert('Profil berhasil diperbarui!');
       setIsEditing(false);
+    } catch (error) {
+      console.error(error);
+      alert('Gagal memperbarui profil.');
     }
   };
 
@@ -56,15 +59,14 @@ export function Profile() {
     return role === 'perangkat_desa' ? 'Perangkat Desa' : 'Kepala Desa';
   };
 
-const getRoleColor = (role: string) => {
-  return role === 'perangkat_desa'
-    ? 'from-[#386fa4] via-[#6aa4d3] to-[#386fa4]'
-    : 'from-[#386fa4] via-[#6aa4d3] to-[#386fa4]';
-};
+  const getRoleColor = (role: string) => {
+    return role === 'perangkat_desa'
+      ? 'from-[#386fa4] via-[#6aa4d3] to-[#386fa4]'
+      : 'from-[#386fa4] via-[#6aa4d3] to-[#386fa4]';
+  };
 
   return (
    <div className="min-h-screen bg-[#e6f0fa]">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center space-x-4">
@@ -88,14 +90,12 @@ const getRoleColor = (role: string) => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
         >
-          {/* Profile Header */}
           <div className={`bg-gradient-to-r ${getRoleColor(formData.role)} p-8 text-white relative overflow-hidden`}>
             <motion.div
               animate={{ 
@@ -117,19 +117,17 @@ const getRoleColor = (role: string) => {
                   className="w-24 h-24 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl font-bold border-4 border-white/30 overflow-hidden"
                 >
                   {profilePhoto ? (
-                  <img
-                  src={profilePhoto}
-                    alt="Profile"
+                    <img
+                      src={profilePhoto}
+                      alt="Profile"
                       className="w-full h-full object-cover"
-                       />
-                      ) : (
-                      <User className="w-10 h-10 text-white opacity-80" />
-                      )}
+                    />
+                  ) : (
+                    <User className="w-10 h-10 text-white opacity-80" />
+                  )}
                 </motion.div>
                 {isEditing && (
                   <div className="absolute bottom-0 right-0 flex space-x-1">
-                    
-                    {/* Upload foto */}
                     <label className="p-2 bg-white text-blue-600 rounded-full cursor-pointer hover:bg-blue-50 shadow-lg">
                       <Camera className="w-4 h-4" />
                       <input
@@ -140,7 +138,6 @@ const getRoleColor = (role: string) => {
                       />
                     </label>
                 
-                    {/* Hapus foto */}
                     {profilePhoto && (
                       <button
                         onClick={handleRemovePhoto}
@@ -150,22 +147,18 @@ const getRoleColor = (role: string) => {
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
-                
                   </div>
                 )}
               </div>
               <div>
-                {/* Nama */}
                 <h2 className="text-2xl font-bold">
                   {formData.nama || 'Nama Lengkap'}
                 </h2>
               
-                {/* Email */}
                 <p className="text-sm opacity-80">
                   {formData.email || 'email@gmail.com'}
                 </p>
               
-                {/* Role */}
                 <p className="text-sm mt-1 opacity-90">
                   {getRoleLabel(formData.role)}
                 </p>
@@ -173,7 +166,6 @@ const getRoleColor = (role: string) => {
             </div>
           </div>
 
-          {/* Profile Content */}
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-900">Informasi Akun</h3>
@@ -220,7 +212,6 @@ const getRoleColor = (role: string) => {
             </div>
 
             <div className="space-y-6">
-              {/* Nama */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -244,7 +235,6 @@ const getRoleColor = (role: string) => {
                 </div>
               </motion.div>
 
-              {/* Email */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -261,7 +251,6 @@ const getRoleColor = (role: string) => {
                 </div>
               </motion.div>
 
-              {/* Role */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -277,7 +266,6 @@ const getRoleColor = (role: string) => {
                 </div>
               </motion.div>
 
-              {/* Tanggal Bergabung */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}

@@ -27,6 +27,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { logoutFromFirebase } from "../utils/auth";
 
 interface PenilaianData {
   id: string;
@@ -91,10 +92,17 @@ const loadData = () => {
     localStorage.getItem("currentUser") || "{}",
   );
 
-  const handleLogout = () => {
-    if (confirm("Apakah Anda yakin ingin logout?")) {
-      localStorage.removeItem("currentUser");
+  const handleLogout = async () => {
+    if (!confirm("Apakah Anda yakin ingin logout?")) {
+      return;
+    }
+
+    try {
+      await logoutFromFirebase();
       navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert("Gagal logout.");
     }
   };
 

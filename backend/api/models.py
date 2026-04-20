@@ -6,9 +6,20 @@ class Warga(models.Model):
     alamat = models.TextField()
     jumlah_anggota = models.IntegerField()
     jumlah_tanggungan = models.IntegerField()
+    status_kk = models.CharField(max_length=50, blank=True, default='')
+    status_tinggal = models.CharField(max_length=50, blank=True, default='')
+    sumber_air = models.CharField(max_length=50, blank=True, default='')
     pendapatan = models.CharField(max_length=50)
     pekerjaan = models.CharField(max_length=100)
-    status = models.CharField(max_length=20)
-
+    status_pekerjaan = models.CharField(max_length=50, blank=True, default='')
+    kepemilikan_usaha = models.CharField(max_length=20, blank=True, default='')
+    kepemilikan_aset = models.CharField(max_length=50, blank=True, default='')
+    riwayat_bantuan = models.CharField(max_length=50, blank=True, default='')
+    foto_rumah = models.FileField(upload_to='warga/rumah/', blank=True, null=True)
+    foto_aset = models.JSONField(default=list, blank=True)
+    tanggal = models.CharField(max_length=30, blank=True, default='')
+    status = models.CharField(max_length=20, blank=True, null=True, default=None)
+    nilai_akhir = models.FloatField(blank=True, null=True, default=None)
+    status_approval = models.CharField(max_length=20, blank=True, default='Pending')
     def __str__(self):
         return self.nama
