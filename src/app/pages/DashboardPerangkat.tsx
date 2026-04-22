@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { getWeeklyActivity, getMonthlyTrend } from '../utils/activityLogger';
+import { logoutFromFirebase } from '../utils/auth';
 
 export function DashboardPerangkat() {
   const navigate = useNavigate();
@@ -78,10 +79,17 @@ const fetchData = () => {
     .catch(err => console.error(err));
 };
 
-  const handleLogout = () => {
-    if (confirm('Apakah Anda yakin ingin logout?')) {
-      localStorage.removeItem('currentUser');
+  const handleLogout = async () => {
+    if (!confirm('Apakah Anda yakin ingin logout?')) {
+      return;
+    }
+
+    try {
+      await logoutFromFirebase();
       navigate('/');
+    } catch (error) {
+      console.error(error);
+      alert('Gagal logout.');
     }
   };
 

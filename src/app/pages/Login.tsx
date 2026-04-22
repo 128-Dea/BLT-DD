@@ -1,62 +1,105 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Lock,
-  User,
-  Building2,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { Lock, User, Building2, Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
-
-// Simulasi database user terdaftar
-const registeredUsers = new Map<
-  string,
-  { email: string; password: string; role: string }
->();
+import {
+  isEmailRegistered,
+  loginWithFirebase,
+  registerWithFirebase,
+  restoreCurrentUser,
+  validateEmailByRole,
+  type UserRole,
+} from "../utils/auth";
 
 export function Login() {
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     nama: "",
-    role: "perangkat_desa" as "perangkat_desa" | "kepala_desa",
+    role: "perangkat_desa" as UserRole,
   });
 
-  const validateEmail = (email: string, role: string) => {
-    if (role === "perangkat_desa") {
-      return email.endsWith("@admin.com");
-    } else if (role === "kepala_desa") {
-      return email.endsWith("@kades.com");
-    }
-    return false;
-  };
+  useEffect(() => {
+    const bootstrapSession = async () => {
+      const currentUser = await restoreCurrentUser();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isRegister) {
-      // Validasi email sesuai role
-      if (!validateEmail(formData.email, formData.role)) {
-        if (formData.role === "perangkat_desa") {
-          alert(
-            "Email Perangkat Desa harus menggunakan format: nama@admin.com",
-          );
-        } else {
-          alert(
-            "Email Kepala Desa harus menggunakan format: nama@kades.com",
-          );
-        }
+      if (!currentUser) {
         return;
       }
 
-      // Check if user already exists
-      if (registeredUsers.has(formData.email)) {
-        alert("Email sudah terdaftar! Silakan login.");
+      navigate(
+        currentUser.role === "perangkat_desa"
+          ? "/dashboard-perangkat"
+          : "/dashboard-kepala"
+      );
+    };
+
+    void bootstrapSession();
+  }, [navigate]);
+
+  const handleNavigateByRole = (role: UserRole) => {
+    navigate(
+      role === "perangkat_desa"
+        ? "/dashboard-perangkat"
+        : "/dashboard-kepala"
+    );
+  };
+
+  const getRoleEmailMessage = (role: UserRole) => {
+    return role === "perangkat_desa"
+      ? "Email Perangkat Desa harus menggunakan format: nama@admin.com"
+      : "Email Kepala Desa harus menggunakan format: nama@kades.com";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateEmailByRole(formData.email, formData.role)) {
+      alert(getRoleEmailMessage(formData.role));
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (isRegister) {
+        // REGISTER LANGSUNG
+        await registerWithFirebase({
+          nama: formData.nama,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        });
+
+        alert("Registrasi berhasil");
+        handleNavigateByRole(formData.role);
+        return;
+      }
+
+      // LOGIN LANGSUNG 
+      const user = await loginWithFirebase({
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      });
+
+      handleNavigateByRole(user.role);
+    } catch (error: any) {
+      console.error(error);
+
+      if (error.code === "auth/user-not-found") {
+        alert("Email belum terdaftar");
+        setIsRegister(true);
+      } else if (error.code === "auth/wrong-password") {
+        alert("Password salah");
+      } else if (error.code === "auth/email-already-in-use") {
+        alert("Email sudah terdaftar, silakan login");
         setIsRegister(false);
+<<<<<<< HEAD
         return;
       }
 
@@ -138,15 +181,18 @@ export function Login() {
       // Navigate ke dashboard sesuai role
       if (formData.role === "perangkat_desa") {
         navigate("/dashboard-perangkat");
+=======
+>>>>>>> d9af873aca3bb43ca289a982244c1cabec05d00c
       } else {
-        navigate("/dashboard-kepala");
+        alert(error.message || "Terjadi kesalahan");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#e6f0fa]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -154,7 +200,6 @@ export function Login() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Logo & Title */}
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0 }}
@@ -186,7 +231,6 @@ export function Login() {
             </motion.p>
           </div>
 
-          {/* Form */}
           <motion.form
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -235,14 +279,12 @@ export function Login() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    role: e.target.value as any,
+                    role: e.target.value as UserRole,
                   })
                 }
                 className="w-full px-4 py-3 border border-gray-400 rounded-lg focus:ring-2 focus:ring-[#386fa4] focus:border-[#386fa4] outline-none transition"
               >
-                <option value="perangkat_desa">
-                  Perangkat Desa
-                </option>
+                <option value="perangkat_desa">Perangkat Desa</option>
                 <option value="kepala_desa">Kepala Desa</option>
               </select>
             </div>
@@ -251,7 +293,6 @@ export function Login() {
               <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
-                
               >
                 Email
               </label>
@@ -265,7 +306,7 @@ export function Login() {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      email: e.target.value,
+                      email: e.target.value.trim(),
                     })
                   }
                   className="w-full pl-10 pr-4 py-3 border border-gray-400 rounded-lg placeholder-gray-500 focus:ring-2 focus:ring-[#386fa4] focus:border-[#386fa4] outline-none transition"
@@ -275,12 +316,11 @@ export function Login() {
                       : "nama@kades.com"
                   }
                 />
-                
               </div>
               <p className="mt-1 text-xs text-gray-500">
                 {formData.role === "perangkat_desa"
-                  ? "📧 Email harus: nama@admin.com"
-                  : "📧 Email harus: nama@kades.com"}
+                  ? "Email harus: nama@admin.com"
+                  : "Email harus: nama@kades.com"}
               </p>
             </div>
 
@@ -297,6 +337,7 @@ export function Login() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   required
+                  minLength={6}
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({
@@ -305,7 +346,7 @@ export function Login() {
                     })
                   }
                   className="w-full pl-10 pr-12 py-3 border border-gray-400 rounded-lg placeholder-gray-500 focus:ring-2 focus:ring-[#386fa4] focus:border-[#386fa4] outline-none transition"
-                  placeholder="••••••••"
+                  placeholder="Minimal 6 karakter"
                 />
                 <button
                   type="button"
@@ -325,9 +366,14 @@ export function Login() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] hover:opacity-90 text-white py-3 rounded-lg font-medium transition shadow-lg shadow-[#386fa4]/30"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] hover:opacity-90 disabled:opacity-70 text-white py-3 rounded-lg font-medium transition shadow-lg shadow-[#386fa4]/30"
             >
-              {isRegister ? "Daftar" : "Masuk"}
+              {isSubmitting
+                ? "Memproses..."
+                : isRegister
+                ? "Daftar"
+                : "Masuk"}
             </motion.button>
           </motion.form>
 
@@ -344,27 +390,22 @@ export function Login() {
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <p className="text-center text-sm text-gray-500">
-              Sistem Pendukung Keputusan Penentuan Penerima
-              BLT-DD <br />
+              Sistem Pendukung Keputusan Penentuan Penerima BLT-DD <br />
               Menggunakan Metode AHP
             </p>
           </div>
         </motion.div>
       </div>
 
-      {/* Right Side - Image */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
-        {/* BACKGROUND IMAGE */}
-<img
-  src="https://i.pinimg.com/736x/ab/86/2e/ab862e798ba59248a6b6919c52966b99.jpg"
-  alt="Komunitas Desa"
- className="w-full h-full object-cover"
-/>
+        <img
+          src="https://i.pinimg.com/736x/ab/86/2e/ab862e798ba59248a6b6919c52966b99.jpg"
+          alt="Komunitas Desa"
+          className="w-full h-full object-cover"
+        />
 
-        {/* BLUE OVERLAY (THEME COLOR) */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#386fa4]/70 via-[#6aa4d3]/60 to-[#2f5f8a]/70" />
 
-        {/* ANIMATED CIRCLES */}
         <motion.div
           animate={{
             scale: [1, 1.2, 1],
@@ -391,7 +432,6 @@ export function Login() {
           className="absolute bottom-20 left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"
         />
 
-        {/* CONTENT */}
         <div className="absolute inset-0 flex items-center justify-center p-12">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -413,16 +453,15 @@ export function Login() {
             <p
               className="text-white font-medium transition"
               style={{
-                  textShadow: `
+                textShadow: `
                     0 1px 2px rgba(0,0,0,1),
                     0 4px 12px rgba(0,0,0,0.9),
                     0 8px 24px rgba(0,0,0,0.8)
                   `,
               }}
             >
-              Membantu perangkat desa dalam menentukan kelayakan
-              penerima bantuan dengan metode Analytical
-              Hierarchy Process (AHP)
+              Membantu perangkat desa dalam menentukan kelayakan penerima bantuan
+              dengan metode Analytical Hierarchy Process (AHP)
             </p>
 
             <div className="bg-black/20 backdrop-blur-md rounded-xl p-6 mt-8 shadow-lg shadow-black/20">
@@ -434,9 +473,7 @@ export function Login() {
                   className="flex items-start"
                 >
                   <span className="inline-block w-2 h-2 bg-white rounded-full mt-2 mr-3"></span>
-                  <span>
-                    Penilaian objektif dan terstruktur
-                  </span>
+                  <span>Penilaian objektif dan terstruktur</span>
                 </motion.li>
 
                 <motion.li
@@ -446,9 +483,7 @@ export function Login() {
                   className="flex items-start"
                 >
                   <span className="inline-block w-2 h-2 bg-white rounded-full mt-2 mr-3"></span>
-                  <span>
-                    Proses pengambilan keputusan yang cepat
-                  </span>
+                  <span>Proses pengambilan keputusan yang cepat</span>
                 </motion.li>
 
                 <motion.li
@@ -458,9 +493,7 @@ export function Login() {
                   className="flex items-start"
                 >
                   <span className="inline-block w-2 h-2 bg-white rounded-full mt-2 mr-3"></span>
-                  <span>
-                    Hasil yang dapat dipertanggungjawabkan
-                  </span>
+                  <span>Hasil yang dapat dipertanggungjawabkan</span>
                 </motion.li>
               </ul>
             </div>

@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import get_warga
+
+from .views import warga_collection
 
 urlpatterns = [
-    path('warga/', get_warga),
+    path('warga/', warga_collection),
 ]

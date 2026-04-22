@@ -14,21 +14,120 @@ import { PenilaianSelesai } from "./pages/PenilaianSelesai";
 import { MenungguApproval } from "./pages/MenungguApproval";
 import { DisetujuiBulanIni } from "./pages/DisetujuiBulanIni";
 import { RiwayatActivity } from "./pages/RiwayatActivity";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Login /> },
-  { path: "/dashboard-perangkat", element: <DashboardPerangkat /> },
-  { path: "/dashboard-kepala", element: <DashboardKepala /> },
-  { path: "/input-data-warga", element: <InputDataWarga /> },
-  { path: "/data-warga", element: <DataWarga /> },
-  { path: "/input-kriteria", element: <InputKriteria /> },
-  { path: "/hasil-penilaian", element: <HasilPenilaian /> },
-  { path: "/riwayat", element: <Riwayat /> },
-  { path: "/profile", element: <Profile /> },
-  { path: "/about", element: <About /> },
-  { path: "/total-warga", element: <TotalWarga /> },
-  { path: "/penilaian-selesai", element: <PenilaianSelesai /> },
-  { path: "/menunggu-approval", element: <MenungguApproval /> },
-  { path: "/disetujui-bulan-ini", element: <DisetujuiBulanIni /> },
-  { path: "/riwayat-activity", element: <RiwayatActivity /> },
+  {
+    path: "/dashboard-perangkat",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <DashboardPerangkat />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard-kepala",
+    element: (
+      <ProtectedRoute allowedRoles={["kepala_desa"]}>
+        <DashboardKepala />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/input-data-warga",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <InputDataWarga />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/data-warga",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <DataWarga />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/input-kriteria",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <InputKriteria />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/hasil-penilaian",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <HasilPenilaian />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/riwayat",
+    element: (
+      <ProtectedRoute>
+        <Riwayat />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/about",
+    element: (
+      <ProtectedRoute>
+        <About />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/total-warga",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <TotalWarga />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/penilaian-selesai",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <PenilaianSelesai />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/menunggu-approval",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <MenungguApproval />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/disetujui-bulan-ini",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <DisetujuiBulanIni />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/riwayat-activity",
+    element: (
+      <ProtectedRoute allowedRoles={["perangkat_desa"]}>
+        <RiwayatActivity />
+      </ProtectedRoute>
+    ),
+  },
 ]);
