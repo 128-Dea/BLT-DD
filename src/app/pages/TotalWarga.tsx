@@ -110,7 +110,7 @@ const getPendapatanLabel = (kategori: string) => {
 
   const updatedData = allData.map((item: WargaData) =>
     item.id === selectedWarga?.id
-      ? { ...item, ...editForm }
+      ? { ...item, ...editForm, nik: item.nik }
       : item
   );
 
@@ -485,8 +485,9 @@ const getPendapatanLabel = (kategori: string) => {
               {isEditing ? (
                 <input
                   value={editForm.nik || ""}
-                  onChange={(e) => setEditForm({ ...editForm, nik: e.target.value })}
-                  className="border rounded px-3 py-2 w-full"
+                  disabled
+                  readOnly
+                  className="border rounded px-3 py-2 w-full bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
               ) : (
                 <p className="font-medium">{selectedWarga.nik}</p>

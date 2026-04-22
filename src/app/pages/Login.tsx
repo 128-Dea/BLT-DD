@@ -76,6 +76,7 @@ export function Login() {
         password: formData.password,
         nama: formData.nama,
         role: formData.role,
+        tanggalBergabung: new Date().toISOString(),
       });
       localStorage.setItem("users", JSON.stringify(users));
 
@@ -101,6 +102,22 @@ export function Login() {
         return;
       }
 
+      const normalizedUser = user.tanggalBergabung
+        ? user
+        : {
+            ...user,
+            tanggalBergabung: new Date().toISOString(),
+          };
+
+      if (!user.tanggalBergabung) {
+        const updatedUsers = users.map((u: any) =>
+          u.email === user.email && u.role === user.role
+            ? normalizedUser
+            : u,
+        );
+        localStorage.setItem("users", JSON.stringify(updatedUsers));
+      }
+
       // Validasi email format
       if (!validateEmail(formData.email, formData.role)) {
         if (formData.role === "perangkat_desa") {
@@ -116,7 +133,7 @@ export function Login() {
       }
 
       // Simpan session
-      localStorage.setItem("currentUser", JSON.stringify(user));
+      localStorage.setItem("currentUser", JSON.stringify(normalizedUser));
 
       // Navigate ke dashboard sesuai role
       if (formData.role === "perangkat_desa") {

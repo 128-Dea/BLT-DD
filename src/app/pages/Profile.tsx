@@ -6,6 +6,17 @@ import { ArrowLeft, User, Mail, Briefcase, Calendar, Edit2, Save, Trash2, Camera
 export function Profile() {
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const joinDate = currentUser.tanggalBergabung
+    ? new Date(currentUser.tanggalBergabung)
+    : null;
+  const formattedJoinDate =
+    joinDate && !Number.isNaN(joinDate.getTime())
+      ? joinDate.toLocaleDateString('id-ID', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'Belum tersedia';
   const [isEditing, setIsEditing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string>(currentUser.profilePhoto || '');
   const [formData, setFormData] = useState({
@@ -290,7 +301,7 @@ const getRoleColor = (role: string) => {
                 <div className="flex-1">
                   <p className="text-sm text-gray-600 mb-1">Tanggal Bergabung</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    {formattedJoinDate}
                   </p>
                 </div>
               </motion.div>
