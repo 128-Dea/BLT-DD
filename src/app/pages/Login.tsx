@@ -24,6 +24,17 @@ export function Login() {
   });
 
   useEffect(() => {
+    if (!isRegister) {
+      setFormData((prev) => ({
+        email: prev.email,
+        password: prev.password,
+        nama: "",
+        role: prev.role,
+      }));
+    }
+  }, [isRegister]);
+
+  useEffect(() => {
     const bootstrapSession = async () => {
       const currentUser = await restoreCurrentUser();
 
@@ -67,7 +78,6 @@ export function Login() {
 
     try {
       if (isRegister) {
-        // REGISTER LANGSUNG
         await registerWithFirebase({
           nama: formData.nama,
           email: formData.email,
@@ -75,8 +85,10 @@ export function Login() {
           role: formData.role,
         });
 
-        alert("Registrasi berhasil");
-        handleNavigateByRole(formData.role);
+        alert("Registrasi berhasil, silakan login");
+
+        setIsRegister(false);
+
         return;
       }
 
@@ -87,7 +99,9 @@ export function Login() {
         role: formData.role,
       });
 
-      handleNavigateByRole(user.role);
+      if (user) {
+        handleNavigateByRole(user.role);
+      }
     } catch (error: any) {
       console.error(error);
 
