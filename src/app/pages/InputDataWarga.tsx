@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, Users, Upload, Trash2 } from 'lucide-react';
 import { logActivity } from '../utils/activityLogger';
-import { API_BASE_URL } from '../utils/api';
+import { db } from '../../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const PEKERJAAN_OPTIONS = [
   'Tidak / Belum Bekerja',
@@ -91,7 +92,7 @@ export function InputDataWarga() {
   }
 };
 
-  const handleSubmitLegacy = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validasi data lengkap
@@ -119,156 +120,44 @@ export function InputDataWarga() {
     }
     
     // Simpan data ke localStorage
-    const existingData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-const newData = {
-  id: Date.now().toString(),
+  try {
+    const newData = {
+      nik: formData.nik,
+      nama: formData.nama,
+      alamat: formData.alamat,
+      jumlahAnggota: formData.jumlahAnggota,
+      jumlahTanggungan: formData.jumlahTanggungan,
+      statusKK: formData.statusKK,
+      statusTinggal: formData.statusTinggal,
+      sumberAir: formData.sumberAir,
+      pendapatan: formData.pendapatan,
+      pekerjaan:
+        formData.pekerjaan === 'Lainnya'
+          ? formData.pekerjaanLainnya
+          : formData.pekerjaan,
+      statusPekerjaan: formData.statusPekerjaan,
+      kepemilikanUsaha: formData.kepemilikanUsaha,
+      kepemilikanAset: formData.kepemilikanAset,
+      riwayatBantuan: formData.riwayatBantuan,
+      fotoRumah: previewRumah,
+      fotoAset: previewAset,
+      tanggal: new Date(),
+      status: null,
+      nilaiAkhir: null
+    };
 
-  nik: formData.nik,
-  nama: formData.nama,
-  alamat: formData.alamat,
-  jumlahAnggota: formData.jumlahAnggota,
-  jumlahTanggungan: formData.jumlahTanggungan,
+    await addDoc(collection(db, "dataWarga"), newData);
 
-  statusKK: formData.statusKK,
-  statusTinggal: formData.statusTinggal,
-  sumberAir: formData.sumberAir,
+    alert("✓ Data warga berhasil disimpan ke Firebase");
+    navigate('/data-warga');
 
-  pendapatan: formData.pendapatan,
-
-  pekerjaan:
-    formData.pekerjaan === 'Lainnya'
-      ? formData.pekerjaanLainnya
-      : formData.pekerjaan,
-
-  statusKerjaTetap: formData.statusPekerjaan,
-
-  kepemilikanUsaha: formData.kepemilikanUsaha,
-
-  kepemilikanAset: formData.kepemilikanAset,
-
-  fotoRumah: previewRumah,
-  fotoAset: previewAset,
-
-  tanggal: new Date().toLocaleDateString('id-ID'),
-
-  status: null,
-  nilaiAkhir: null
-};
-    existingData.push(newData);
-    localStorage.setItem('dataWarga', JSON.stringify(existingData));
-    localStorage.setItem('currentWargaId', newData.id);
+  } catch (error) {
+    console.error(error);
+    alert("Gagal simpan ke Firebase");
+  }
 
     // Log aktivitas
     logActivity('tambah', `${formData.nik} - ${formData.nama}`, `Menambahkan data warga baru: ${formData.nama}`);
-
-    alert('✓ Data warga berhasil disimpan!');
-    navigate('/data-warga');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const requiredFields = ['nik', 'nama', 'alamat', 'jumlahAnggota', 'jumlahTanggungan', 'pendapatan', 'pekerjaan'];
-    const isComplete = requiredFields.every(field => formData[field as keyof typeof formData]);
-
-    if (!isComplete) {
-      alert('Mohon lengkapi semua data yang wajib diisi!');
-      return;
-    }
-
-    if (!fotoRumah) {
-      alert('Mohon upload foto rumah!');
-      return;
-    }
-
-    if (formData.kepemilikanAset !== 'tidak' && fotoAset.length === 0) {
-      alert('Mohon upload foto kepemilikan aset!');
-      return;
-    }
-
-    if (formData.pekerjaan === 'Lainnya' && !formData.pekerjaanLainnya) {
-      alert('Mohon sebutkan jenis pekerjaan lainnya!');
-      return;
-    }
-
-    try {
-      const tanggal = new Date().toLocaleDateString('id-ID');
-      const pekerjaanFinal =
-        formData.pekerjaan === 'Lainnya'
-          ? formData.pekerjaanLainnya
-          : formData.pekerjaan;
-      const formPayload = new FormData();
-
-      formPayload.append('nik', formData.nik);
-      formPayload.append('nama', formData.nama);
-      formPayload.append('alamat', formData.alamat);
-      formPayload.append('jumlah_anggota', formData.jumlahAnggota);
-      formPayload.append('jumlah_tanggungan', formData.jumlahTanggungan);
-      formPayload.append('status_kk', formData.statusKK);
-      formPayload.append('status_tinggal', formData.statusTinggal);
-      formPayload.append('sumber_air', formData.sumberAir);
-      formPayload.append('pendapatan', formData.pendapatan);
-      formPayload.append('pekerjaan', pekerjaanFinal);
-      formPayload.append('status_pekerjaan', formData.statusPekerjaan);
-      formPayload.append('kepemilikan_usaha', formData.kepemilikanUsaha);
-      formPayload.append('kepemilikan_aset', formData.kepemilikanAset);
-      formPayload.append('riwayat_bantuan', formData.riwayatBantuan);
-      formPayload.append('tanggal', tanggal);
-      formPayload.append('status_approval', 'Pending');
-      formPayload.append('foto_rumah', fotoRumah);
-
-      fotoAset.forEach((file) => {
-        formPayload.append('foto_aset', file);
-      });
-
-      const response = await fetch(`${API_BASE_URL}/api/warga/`, {
-        method: 'POST',
-        body: formPayload
-      });
-
-      const responseData = await response.json();
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Gagal menyimpan data warga');
-      }
-
-      const existingData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-      const newData = {
-        id: responseData.id?.toString() || Date.now().toString(),
-        nik: responseData.nik,
-        nama: responseData.nama,
-        alamat: responseData.alamat,
-        jumlahAnggota: responseData.jumlah_anggota?.toString() || formData.jumlahAnggota,
-        jumlahTanggungan: responseData.jumlah_tanggungan?.toString() || formData.jumlahTanggungan,
-        statusKK: responseData.status_kk || formData.statusKK,
-        statusTinggal: responseData.status_tinggal || formData.statusTinggal,
-        sumberAir: responseData.sumber_air || formData.sumberAir,
-        pendapatan: responseData.pendapatan,
-        pekerjaan: responseData.pekerjaan,
-        statusKerjaTetap: responseData.status_pekerjaan || formData.statusPekerjaan,
-        kepemilikanUsaha: responseData.kepemilikan_usaha || formData.kepemilikanUsaha,
-        kepemilikanAset: responseData.kepemilikan_aset || formData.kepemilikanAset,
-        riwayatBantuan: responseData.riwayat_bantuan || formData.riwayatBantuan,
-        fotoRumah: responseData.foto_rumah || previewRumah,
-        fotoAset: responseData.foto_aset || previewAset,
-        tanggal: responseData.tanggal || tanggal,
-        status: responseData.status,
-        nilaiAkhir: responseData.nilai_akhir
-      };
-
-      existingData.push(newData);
-      localStorage.setItem('dataWarga', JSON.stringify(existingData));
-      localStorage.setItem('currentWargaId', newData.id);
-
-      logActivity('tambah', `${formData.nik} - ${formData.nama}`, `Menambahkan data warga baru: ${formData.nama}`);
-
-      alert('Data warga dan foto berhasil disimpan di Django!');
-      navigate('/data-warga');
-    } catch (error) {
-      console.error(error);
-      const message =
-        error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan data';
-      alert(message);
-    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -626,16 +515,13 @@ const newData = {
                   </label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-[#386fa4] transition">
                     {previewAset.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {previewAset.map((foto, index) => (
-                          <div
-                            key={index}
-                            className="relative flex justify-center items-center rounded-lg border bg-white p-4 min-h-[320px]"
-                          >
+                          <div key={index} className="relative">
                             <img
                               src={foto}
                               alt={`Preview ${index}`}
-                              className="max-w-full h-auto max-h-[520px] object-contain rounded-lg shadow-sm"
+                              className="w-full h-40 object-cover rounded-lg border"
                             />
                     
                             <button
@@ -649,7 +535,7 @@ const newData = {
                                   prev.filter((_, i) => i !== index)
                                 );
                               }}
-                              className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow"
+                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
