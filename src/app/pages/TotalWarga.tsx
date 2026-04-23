@@ -421,11 +421,12 @@ const getPendapatanLabel = (kategori: string) => {
       animate={{ scale: 1, y: 0 }}
       exit={{ scale: 0.9, y: 20 }}
       onClick={(e) => e.stopPropagation()}
-      className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+      className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden"
     >
+      <div className="max-h-[90vh] overflow-y-auto">
 
       {/* HEADER */}
-      <div className="sticky top-0 bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] text-white p-6 rounded-t-2xl relative">
+      <div className="sticky top-0 z-30 bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] text-white p-6 rounded-t-2xl relative shadow-md">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Detail Warga</h2>
           <p>{selectedWarga.nama}</p>
@@ -460,7 +461,7 @@ const getPendapatanLabel = (kategori: string) => {
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 space-y-6">
+      <div className="p-6 pt-5 space-y-6 relative z-10 bg-white">
 
         {/* TANGGAL INPUT */}
         <div className="flex justify-center">
@@ -480,19 +481,24 @@ const getPendapatanLabel = (kategori: string) => {
             Data Pribadi
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">NIK</p>
-              {isEditing ? (
-                <input
-                  value={editForm.nik || ""}
-                  disabled
-                  readOnly
-                  className="border rounded px-3 py-2 w-full bg-gray-100 text-gray-500 cursor-not-allowed"
-                />
-              ) : (
-                <p className="font-medium">{selectedWarga.nik}</p>
-              )}
-            </div>
+           <div>
+  <p className="text-sm text-gray-600">NIK</p>
+  {isEditing ? (
+    <>
+      <input
+        value={editForm.nik || ""}
+        disabled
+        readOnly
+        className="border rounded px-3 py-2 w-full bg-gray-100 text-gray-500 cursor-not-allowed"
+      />
+      <p className="text-xs text-gray-400 mt-1 italic">
+        NIK tidak dapat diubah
+      </p>
+    </>
+  ) : (
+    <p className="font-medium">{selectedWarga.nik}</p>
+  )}
+</div>
             <div>
               <p className="text-sm text-gray-600">Nama</p>
               {isEditing ? (
@@ -604,13 +610,50 @@ const getPendapatanLabel = (kategori: string) => {
           </div>
 
           {(editForm.fotoRumah || selectedWarga.fotoRumah) && (
-            <div className="mt-4">
+            <div className="mt-5">
               <p className="text-sm text-gray-600 mb-2">Foto Rumah</p>
-              <img
-                src={editForm.fotoRumah || selectedWarga.fotoRumah}
-                alt="Foto Rumah"
-                className="w-full rounded-xl"
-              />
+              <div className="relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[240px] max-h-[420px]">
+                  <img
+                    src={editForm.fotoRumah || selectedWarga.fotoRumah}
+                    alt="Foto Rumah"
+                    className="w-full h-full max-h-[390px] object-contain cursor-pointer"
+                    onDoubleClick={() => {
+                      if (isEditing) {
+                        document.getElementById("uploadFotoRumah")?.click();
+                      }
+                    }}
+                  />
+                </div>
+
+                {isEditing && (
+                  <input
+                    id="uploadFotoRumah"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setEditForm({
+                          ...editForm,
+                          fotoRumah: reader.result as string,
+                        });
+                      };
+
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                )}
+              </div>
+              {isEditing && (
+                <p className="text-xs text-gray-500 italic mt-2">
+                  Double click foto rumah untuk mengganti
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -754,24 +797,29 @@ const getPendapatanLabel = (kategori: string) => {
   <div className="mt-4">
     <p className="text-sm text-gray-600 mb-2">Foto Aset</p>
 
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {(editForm.fotoAset?.length
         ? editForm.fotoAset
         : selectedWarga.fotoAset
       )?.map((foto, index) => (
-        <div key={index} className="relative">
-          <img
-            src={foto}
-            alt={`Foto Aset ${index + 1}`}
-            className="w-full max-h-[250px] object-contain rounded-lg border cursor-pointer"
-            onDoubleClick={() => {
-              if (isEditing) {
-                document
-                  .getElementById(`uploadFotoAset-${index}`)
-                  ?.click();
-              }
-            }}
-          />
+        <div
+          key={index}
+          className="relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+        >
+          <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
+            <img
+              src={foto}
+              alt={`Foto Aset ${index + 1}`}
+              className="w-full h-full max-h-[230px] object-contain cursor-pointer"
+              onDoubleClick={() => {
+                if (isEditing) {
+                  document
+                    .getElementById(`uploadFotoAset-${index}`)
+                    ?.click();
+                }
+              }}
+            />
+          </div>
 
           {isEditing && (
             <>
@@ -804,24 +852,25 @@ const getPendapatanLabel = (kategori: string) => {
               />
 
               {/* HAPUS FOTO */}
-              <button
-                type="button"
-                onClick={() => {
-                  const updatedFoto = (
-                    editForm.fotoAset ||
-                    selectedWarga.fotoAset ||
-                    []
-                  ).filter((_, i) => i !== index);
+             <button
+  type="button"
+  onClick={() => {
+    const currentFoto =
+      editForm.fotoAset || selectedWarga.fotoAset || [];
 
-                  setEditForm({
-                    ...editForm,
-                    fotoAset: updatedFoto,
-                  });
-                }}
-                className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs"
-              >
-                Hapus
-              </button>
+    const updatedFoto = currentFoto.filter(
+      (_: string, i: number) => i !== index
+    );
+
+    setEditForm({
+      ...editForm,
+      fotoAset: updatedFoto,
+    });
+  }}
+  className="absolute top-5 right-5 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-sm"
+>
+  <Trash2 className="w-4 h-4" />
+</button>
             </>
           )}
         </div>
@@ -899,6 +948,7 @@ const getPendapatanLabel = (kategori: string) => {
           </div>
         )}
 
+      </div>
       </div>
     </motion.div>
   </motion.div>

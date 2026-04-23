@@ -7,8 +7,8 @@ import { updateUserProfile } from '../utils/auth';
 export function Profile() {
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  const joinDate = currentUser.tanggalBergabung
-    ? new Date(currentUser.tanggalBergabung)
+  const joinDate = currentUser.createdAt
+    ? new Date(currentUser.createdAt)
     : null;
   const formattedJoinDate =
     joinDate && !Number.isNaN(joinDate.getTime())

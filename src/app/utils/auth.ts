@@ -28,6 +28,22 @@ export interface AppUser {
   createdAt?: string;
 }
 
+const getUserCreatedAt = (
+  source?: { createdAt?: unknown },
+  fallbackCreatedAt?: string,
+  firebaseCreationTime?: string | null
+) => {
+  if (typeof source?.createdAt?.toDate === 'function') {
+    return source.createdAt.toDate().toISOString();
+  }
+
+  if (typeof source?.createdAt === 'string') {
+    return source.createdAt;
+  }
+
+  return fallbackCreatedAt || firebaseCreationTime || undefined;
+};
+
 const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'currentUser';
 
@@ -97,6 +113,7 @@ const buildAppUser = async (firebaseUser: User): Promise<AppUser | null> => {
         email: firebaseUser.email || fallbackUser?.email || '',
         role: fallbackUser?.role || 'perangkat_desa',
         profilePhoto: fallbackUser?.profilePhoto || '',
+        createdAt: fallbackUser?.createdAt || firebaseUser.metadata.creationTime || undefined,
       };
 
       upsertUserInStorage(appUser);
@@ -112,10 +129,11 @@ const buildAppUser = async (firebaseUser: User): Promise<AppUser | null> => {
       email: firebaseUser.email || data.email || fallbackUser?.email || '',
       role: (data.role || fallbackUser?.role || 'perangkat_desa') as UserRole,
       profilePhoto: data.profilePhoto || fallbackUser?.profilePhoto || '',
-      createdAt:
-        typeof data.createdAt?.toDate === 'function'
-          ? data.createdAt.toDate().toISOString()
-          : undefined,
+      createdAt: getUserCreatedAt(
+        data,
+        fallbackUser?.createdAt,
+        firebaseUser.metadata.creationTime
+      ),
     };
 
     upsertUserInStorage(appUser);
@@ -133,6 +151,7 @@ const buildAppUser = async (firebaseUser: User): Promise<AppUser | null> => {
       email: firebaseUser.email || fallbackUser?.email || '',
       role: fallbackUser?.role || 'perangkat_desa',
       profilePhoto: fallbackUser?.profilePhoto || '',
+      createdAt: fallbackUser?.createdAt || firebaseUser.metadata.creationTime || undefined,
     };
 
     upsertUserInStorage(appUser);
@@ -170,6 +189,7 @@ export const registerWithFirebase = async (payload: {
     email: payload.email,
     role: payload.role,
     profilePhoto: '',
+    createdAt: new Date().toISOString(),
   };
 
   let credential;
@@ -236,6 +256,8 @@ export const loginWithFirebase = async (payload: {
     email: credential.user.email || payload.email,
     role: storedUser?.role || payload.role,
     profilePhoto: storedUser?.profilePhoto || '',
+    createdAt:
+      storedUser?.createdAt || credential.user.metadata.creationTime || undefined,
   };
 
   upsertUserInStorage(fallbackUser);
