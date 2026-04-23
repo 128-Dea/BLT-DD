@@ -1,38 +1,19 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyB6HNgnhYVHUCc7dYZDQkOJr764yt8GPlo",
+  authDomain: "blt-dd.firebaseapp.com",
+  projectId: "blt-dd",
+  storageBucket: "blt-dd.firebasestorage.app",
+  messagingSenderId: "140975076564",
+  appId: "1:140975076564:web:4c06edae069d6f8ccf7741",
+  measurementId: "G-0G9TEEJGDD"
 };
 
-const missingConfig = Object.entries(firebaseConfig)
-  .filter(([, value]) => !value)
-  .map(([key]) => key);
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
+const app = initializeApp(firebaseConfig);
 
-if (missingConfig.length > 0) {
-  console.warn(
-    `Firebase belum lengkap. Lengkapi env berikut: ${missingConfig.join(', ')}`
-  );
-}
-
-export const isFirebaseConfigured = missingConfig.length === 0;
-
-const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
-
-export const auth = app ? getAuth(app) : null;
-
-if (auth) {
-  setPersistence(auth, browserLocalPersistence).catch((error) => {
-    console.error('Gagal mengatur persistence Firebase Auth:', error);
-  });
-}
-
-export const db = app ? getFirestore(app) : null;
-export const storage = app ? getStorage(app) : null;
+export const auth = getAuth(app);
+export const db = getFirestore(app);

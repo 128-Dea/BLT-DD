@@ -15,11 +15,13 @@ class Warga(models.Model):
     kepemilikan_usaha = models.CharField(max_length=20, blank=True, default='')
     kepemilikan_aset = models.CharField(max_length=50, blank=True, default='')
     riwayat_bantuan = models.CharField(max_length=50, blank=True, default='')
-    foto_rumah = models.FileField(upload_to='warga/rumah/', blank=True, null=True)
-    foto_aset = models.JSONField(default=list, blank=True)
+    foto_rumah = models.ImageField(upload_to='rumah/', null=True, blank=True)
+    foto_aset = models.ImageField(upload_to='aset/', null=True, blank=True)
     tanggal = models.CharField(max_length=30, blank=True, default='')
     status = models.CharField(max_length=20, blank=True, null=True, default=None)
     nilai_akhir = models.FloatField(blank=True, null=True, default=None)
     status_approval = models.CharField(max_length=20, blank=True, default='Pending')
+    firebase_key = models.CharField(max_length=120, blank=True, default='')
+
     def __str__(self):
         return self.nama
