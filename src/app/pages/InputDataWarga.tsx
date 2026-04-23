@@ -3,8 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, Users, Upload, Trash2 } from 'lucide-react';
 import { logActivity } from '../utils/activityLogger';
-import { db } from '../../firebase';
+import { FirebaseError } from 'firebase/app';
 import { collection, addDoc } from 'firebase/firestore';
+import { auth, db } from '../../firebase';
+import { restoreCurrentUser } from '../utils/auth';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const PEKERJAAN_OPTIONS = [
   'Tidak / Belum Bekerja',
@@ -13,12 +17,12 @@ const PEKERJAAN_OPTIONS = [
   'Buruh Tani',
   'Nelayan',
   'Peternak',
-  'Pedagang/Usaha Mikro / UMKM',
+  'Pedagang / Usaha Mikro / UMKM',
   'Wiraswasta / Usaha Sendiri',
   'Karyawan Swasta/Buruh Pabrik',
   'Buruh Harian Lepas',
   'Tukang Bangunan',
-  'Supir / Driver',
+  'Driver / Supir',
   'Ojek / Ojek Online',
   'PNS (Pegawai Negeri Sipil)',
   'TNI / POLRI',
@@ -38,7 +42,7 @@ export function InputDataWarga() {
   const [previewRumah, setPreviewRumah] = useState<string>('');
   const [fotoAset, setFotoAset] = useState<File[]>([]);
   const [previewAset, setPreviewAset] = useState<string[]>([]);
-  
+
   const [formData, setFormData] = useState({
     nik: '',
     nama: '',
@@ -57,6 +61,47 @@ export function InputDataWarga() {
     riwayatBantuan: 'belum_pernah'
   });
 
+  const uploadMedia = async () => {
+    if (!fotoRumah) {
+      throw new Error('Foto rumah wajib diupload');
+    }
+
+    const payload = new FormData();
+    payload.append('foto_rumah', fotoRumah);
+    payload.append('kepemilikan_aset', formData.kepemilikanAset);
+
+    fotoAset.forEach((file) => {
+      payload.append('foto_aset', file);
+    });
+
+    const response = await fetch(`${API_BASE_URL}/api/warga/upload-media/`, {
+      method: 'POST',
+      body: payload,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Upload media gagal');
+    }
+
+    return result as { foto_rumah: string; foto_aset: string[] };
+  };
+
+  const saveToLocalStorage = (data: Record<string, unknown>) => {
+    const existingData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
+    existingData.unshift(data);
+    localStorage.setItem('dataWarga', JSON.stringify(existingData));
+  };
+
+  const isFirestorePermissionError = (error: unknown) => {
+    return (
+      error instanceof FirebaseError &&
+      (error.code === 'permission-denied' ||
+        error.code === 'firestore/permission-denied')
+    );
+  };
+
   const handleFotoRumahChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -70,35 +115,34 @@ export function InputDataWarga() {
   };
 
   const handleFotoAsetChange = (
-  e: React.ChangeEvent<HTMLInputElement>
-) => {
-  const files = Array.from(e.target.files || []);
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(e.target.files || []);
 
-  if (files.length > 0) {
-    setFotoAset((prev) => [...prev, ...files]);
+    if (files.length > 0) {
+      setFotoAset((prev) => [...prev, ...files]);
 
-    files.forEach((file) => {
-      const reader = new FileReader();
+      files.forEach((file) => {
+        const reader = new FileReader();
 
-      reader.onloadend = () => {
-        setPreviewAset((prev) => [
-          ...prev,
-          reader.result as string,
-        ]);
-      };
+        reader.onloadend = () => {
+          setPreviewAset((prev) => [
+            ...prev,
+            reader.result as string,
+          ]);
+        };
 
-      reader.readAsDataURL(file);
-    });
-  }
-};
+        reader.readAsDataURL(file);
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validasi data lengkap
+
     const requiredFields = ['nik', 'nama', 'alamat', 'jumlahAnggota', 'jumlahTanggungan', 'pendapatan', 'pekerjaan'];
     const isComplete = requiredFields.every(field => formData[field as keyof typeof formData]);
-    
+
     if (!isComplete) {
       alert('Mohon lengkapi semua data yang wajib diisi!');
       return;
@@ -109,7 +153,7 @@ export function InputDataWarga() {
       return;
     }
 
-    if (formData.kepemilikanAset !== 'tidak' && !fotoAset) {
+    if (formData.kepemilikanAset !== 'tidak' && fotoAset.length === 0) {
       alert('Mohon upload foto kepemilikan aset!');
       return;
     }
@@ -118,46 +162,68 @@ export function InputDataWarga() {
       alert('Mohon sebutkan jenis pekerjaan lainnya!');
       return;
     }
-    
-    // Simpan data ke localStorage
-  try {
-    const newData = {
-      nik: formData.nik,
-      nama: formData.nama,
-      alamat: formData.alamat,
-      jumlahAnggota: formData.jumlahAnggota,
-      jumlahTanggungan: formData.jumlahTanggungan,
-      statusKK: formData.statusKK,
-      statusTinggal: formData.statusTinggal,
-      sumberAir: formData.sumberAir,
-      pendapatan: formData.pendapatan,
-      pekerjaan:
-        formData.pekerjaan === 'Lainnya'
-          ? formData.pekerjaanLainnya
-          : formData.pekerjaan,
-      statusPekerjaan: formData.statusPekerjaan,
-      kepemilikanUsaha: formData.kepemilikanUsaha,
-      kepemilikanAset: formData.kepemilikanAset,
-      riwayatBantuan: formData.riwayatBantuan,
-      fotoRumah: previewRumah,
-      fotoAset: previewAset,
-      tanggal: new Date(),
-      status: null,
-      nilaiAkhir: null
-    };
 
-    await addDoc(collection(db, "dataWarga"), newData);
+    try {
+      const uploadedMedia = await uploadMedia();
+      const tanggal = new Date().toLocaleString('id-ID');
+      const newData = {
+        nik: formData.nik,
+        nama: formData.nama,
+        alamat: formData.alamat,
+        jumlahAnggota: formData.jumlahAnggota,
+        jumlahTanggungan: formData.jumlahTanggungan,
+        statusKK: formData.statusKK,
+        statusTinggal: formData.statusTinggal,
+        sumberAir: formData.sumberAir,
+        pendapatan: formData.pendapatan,
+        pekerjaan:
+          formData.pekerjaan === 'Lainnya'
+            ? formData.pekerjaanLainnya
+            : formData.pekerjaan,
+        statusPekerjaan: formData.statusPekerjaan,
+        kepemilikanUsaha: formData.kepemilikanUsaha,
+        kepemilikanAset: formData.kepemilikanAset,
+        riwayatBantuan: formData.riwayatBantuan,
+        fotoRumah: uploadedMedia.foto_rumah,
+        fotoAset: uploadedMedia.foto_aset,
+        tanggal,
+        createdAt: new Date().toISOString(),
+        status: null,
+        nilaiAkhir: null,
+        statusApproval: 'Pending'
+      };
+      await restoreCurrentUser().catch(() => null);
 
-    alert("✓ Data warga berhasil disimpan ke Firebase");
-    navigate('/data-warga');
+      let savedId = `local-${Date.now()}`;
+      let syncStatus: 'synced' | 'pending_firestore' = 'pending_firestore';
 
-  } catch (error) {
-    console.error(error);
-    alert("Gagal simpan ke Firebase");
-  }
+      if (auth.currentUser) {
+        try {
+          const docRef = await addDoc(collection(db, "dataWarga"), newData);
+          savedId = docRef.id;
+          syncStatus = 'synced';
+        } catch (firestoreError) {
+          if (!isFirestorePermissionError(firestoreError)) {
+            throw firestoreError;
+          }
+        }
+      }
 
-    // Log aktivitas
-    logActivity('tambah', `${formData.nik} - ${formData.nama}`, `Menambahkan data warga baru: ${formData.nama}`);
+      saveToLocalStorage({
+        id: savedId,
+        ...newData,
+        firebaseSyncStatus: syncStatus,
+      });
+
+      logActivity('tambah', `${formData.nik} - ${formData.nama}`, `Menambahkan data warga baru: ${formData.nama}`);
+
+      alert('Data warga berhasil disimpan');
+
+      navigate('/data-warga');
+    } catch (error: any) {
+      console.error(error);
+      alert(`Gagal simpan data: ${error?.message || 'Terjadi kesalahan'}`);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -195,10 +261,10 @@ export function InputDataWarga() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.form 
+        <motion.form
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          onSubmit={handleSubmit} 
+          onSubmit={handleSubmit}
           className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
         >
           {/* Data Identitas */}
@@ -207,7 +273,7 @@ export function InputDataWarga() {
               <Users className="w-6 h-6 text-[#386fa4]" />
               <h2 className="text-xl font-semibold text-gray-900">Data Identitas</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="nik" className="block text-sm font-medium text-gray-700 mb-2">
@@ -261,7 +327,7 @@ export function InputDataWarga() {
           {/* Data Keluarga */}
           <div className="mb-8 pb-8 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Keluarga</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="jumlahAnggota" className="block text-sm font-medium text-gray-700 mb-2">
@@ -318,7 +384,7 @@ export function InputDataWarga() {
           {/* Data Tempat Tinggal */}
           <div className="mb-8 pb-8 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Tempat Tinggal</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="statusTinggal" className="block text-sm font-medium text-gray-700 mb-2">
@@ -397,7 +463,7 @@ export function InputDataWarga() {
           {/* Data Ekonomi */}
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Ekonomi</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label htmlFor="pendapatan" className="block text-sm font-medium text-gray-700 mb-2">
@@ -523,14 +589,14 @@ export function InputDataWarga() {
                               alt={`Preview ${index}`}
                               className="w-full h-40 object-cover rounded-lg border"
                             />
-                    
+
                             <button
                               type="button"
                               onClick={() => {
                                 setPreviewAset((prev) =>
                                   prev.filter((_, i) => i !== index)
                                 );
-                    
+
                                 setFotoAset((prev) =>
                                   prev.filter((_, i) => i !== index)
                                 );

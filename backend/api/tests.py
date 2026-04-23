@@ -12,6 +12,34 @@ TEST_MEDIA_ROOT = Path(__file__).resolve().parent.parent / 'test_media'
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class WargaUploadTests(TestCase):
+    def test_upload_media_saves_physical_files(self):
+        rumah = SimpleUploadedFile(
+            'rumah.jpg',
+            b'fake-rumah-content',
+            content_type='image/jpeg',
+        )
+        aset = SimpleUploadedFile(
+            'aset.jpg',
+            b'fake-aset-content',
+            content_type='image/jpeg',
+        )
+
+        response = self.client.post(
+            '/api/warga/upload-media/',
+            data={
+                'kepemilikan_aset': 'kendaraan',
+                'foto_rumah': rumah,
+                'foto_aset': aset,
+            },
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = json.loads(response.content)
+
+        self.assertIn('/media/warga/rumah/', payload['foto_rumah'])
+        self.assertEqual(len(payload['foto_aset']), 1)
+        self.assertIn('/media/warga/aset/', payload['foto_aset'][0])
+
     def test_post_warga_saves_physical_files(self):
         rumah = SimpleUploadedFile(
             'rumah.jpg',

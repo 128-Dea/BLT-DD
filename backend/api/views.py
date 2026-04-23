@@ -22,6 +22,13 @@ def build_media_url(request, path):
     return request.build_absolute_uri(url) if request is not None else url
 
 
+def save_uploaded_file(file_obj, folder):
+    extension = os.path.splitext(file_obj.name)[1]
+    filename = f"warga/{folder}/{uuid4().hex}{extension}"
+    saved_path = default_storage.save(filename, file_obj)
+    return saved_path
+
+
 def serialize_warga(warga, request=None):
     return {
         "id": warga.id,
@@ -50,6 +57,35 @@ def serialize_warga(warga, request=None):
         "nilai_akhir": warga.nilai_akhir,
         "status_approval": warga.status_approval,
     }
+
+
+@csrf_exempt
+def upload_warga_media(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    foto_rumah = request.FILES.get('foto_rumah')
+    foto_aset_files = request.FILES.getlist('foto_aset')
+    kepemilikan_aset = request.POST.get('kepemilikan_aset', 'tidak')
+
+    if foto_rumah is None:
+        return JsonResponse({"error": "Foto rumah wajib diupload"}, status=400)
+
+    if kepemilikan_aset != 'tidak' and not foto_aset_files:
+        return JsonResponse({"error": "Foto aset wajib diupload"}, status=400)
+
+    saved_rumah_path = save_uploaded_file(foto_rumah, 'rumah')
+    saved_aset_paths = [
+        save_uploaded_file(foto, 'aset') for foto in foto_aset_files
+    ]
+
+    return JsonResponse(
+        {
+            "foto_rumah": build_media_url(request, saved_rumah_path),
+            "foto_aset": [build_media_url(request, path) for path in saved_aset_paths],
+        },
+        status=201,
+    )
 
 
 @csrf_exempt
@@ -87,11 +123,8 @@ def warga_collection(request):
     if payload.get('kepemilikan_aset') != 'tidak' and not foto_aset_files:
         return JsonResponse({"error": "Foto aset wajib diupload"}, status=400)
 
-    saved_aset_paths = []
-    for foto in foto_aset_files:
-        extension = os.path.splitext(foto.name)[1]
-        filename = f"warga/aset/{uuid4().hex}{extension}"
-        saved_aset_paths.append(default_storage.save(filename, foto))
+    saved_rumah_path = save_uploaded_file(foto_rumah, 'rumah')
+    saved_aset_paths = [save_uploaded_file(foto, 'aset') for foto in foto_aset_files]
 
     warga = Warga.objects.create(
         nik=payload['nik'],
@@ -108,7 +141,7 @@ def warga_collection(request):
         kepemilikan_usaha=payload.get('kepemilikan_usaha', ''),
         kepemilikan_aset=payload.get('kepemilikan_aset', ''),
         riwayat_bantuan=payload.get('riwayat_bantuan', ''),
-        foto_rumah=foto_rumah,
+        foto_rumah=saved_rumah_path,
         foto_aset=saved_aset_paths,
         tanggal=payload.get('tanggal', ''),
         status=payload.get('status') or None,
