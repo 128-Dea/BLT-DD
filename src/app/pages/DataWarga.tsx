@@ -285,11 +285,12 @@ const handleDelete = (id: string, nama: string) => {
       animate={{ scale: 1, y: 0 }}
       exit={{ scale: 0.9, y: 20 }}
       onClick={(e) => e.stopPropagation()}
-      className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+      className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden"
     >
+      <div className="max-h-[90vh] overflow-y-auto">
 
       {/* HEADER */}
-      <div className="sticky top-0 bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] text-white p-6 rounded-t-2xl relative">
+      <div className="sticky top-0 z-30 bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] text-white p-6 rounded-t-2xl relative shadow-md">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Detail Warga</h2>
           <p>{selectedWarga.nama}</p>
@@ -304,7 +305,7 @@ const handleDelete = (id: string, nama: string) => {
       </div>
 
      {/* CONTENT */}
-<div className="p-6 space-y-6">
+<div className="p-6 pt-5 space-y-6 relative z-10 bg-white">
 
   {/* TANGGAL INPUT (BOX SENDIRI) */}
   <div className="flex justify-center">
@@ -390,13 +391,17 @@ const handleDelete = (id: string, nama: string) => {
                               </div>
                       
                               {selectedWarga.fotoRumah && (
-                                <div className="mt-4">
-                                  <p className="mb-2">Foto Rumah</p>
-                                  <img
-                                    src={selectedWarga.fotoRumah}
-                                    alt="Foto Rumah"
-                                    className="w-full rounded-xl"
-                                  />
+                                <div className="mt-5">
+                                  <p className="text-sm text-gray-600 mb-2">Foto Rumah</p>
+                                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                                    <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[240px] max-h-[420px]">
+                                      <img
+                                        src={selectedWarga.fotoRumah}
+                                        alt="Foto Rumah"
+                                        className="w-full h-full max-h-[390px] object-contain"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -475,14 +480,20 @@ Array.isArray(selectedWarga.fotoAset) && (
       Foto Aset
     </p>
 
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {selectedWarga.fotoAset.map((foto, index) => (
-        <img
+        <div
           key={index}
-          src={foto}
-          alt={`Foto Aset ${index + 1}`}
-          className="w-full max-h-[250px] object-contain rounded-lg border"
-        />
+          className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+        >
+          <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
+            <img
+              src={foto}
+              alt={`Foto Aset ${index + 1}`}
+              className="w-full h-full max-h-[230px] object-contain"
+            />
+          </div>
+        </div>
       ))}
     </div>
   </div>
@@ -532,6 +543,7 @@ Array.isArray(selectedWarga.fotoAset) && (
   </div>
 
 </div>
+      </div>
     </motion.div>
   </motion.div>
 )}
