@@ -29,6 +29,13 @@ def save_uploaded_file(file_obj, folder):
     return saved_path
 
 
+def save_profile_file(file_obj):
+    extension = os.path.splitext(file_obj.name)[1]
+    filename = f"profile/{uuid4().hex}{extension}"
+    saved_path = default_storage.save(filename, file_obj)
+    return saved_path
+
+
 def serialize_warga(warga, request=None):
     return {
         "id": warga.id,
@@ -83,6 +90,26 @@ def upload_warga_media(request):
         {
             "foto_rumah": build_media_url(request, saved_rumah_path),
             "foto_aset": [build_media_url(request, path) for path in saved_aset_paths],
+        },
+        status=201,
+    )
+
+
+@csrf_exempt
+def upload_profile_photo(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    profile_photo = request.FILES.get('profile_photo')
+
+    if profile_photo is None:
+        return JsonResponse({"error": "Foto profil wajib diupload"}, status=400)
+
+    saved_profile_path = save_profile_file(profile_photo)
+
+    return JsonResponse(
+        {
+            "profile_photo": build_media_url(request, saved_profile_path),
         },
         status=201,
     )

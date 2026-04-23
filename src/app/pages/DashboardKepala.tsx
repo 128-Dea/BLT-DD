@@ -69,24 +69,28 @@ useEffect(() => {
 }, []);
 
 const loadData = () => {
-  fetch("http://127.0.0.1:8000/api/warga/")
-    .then(res => res.json())
-    .then(data => {
-  if (!Array.isArray(data)) {
-    console.error("Data bukan array:", data);
+  const storedData = JSON.parse(
+    localStorage.getItem("dataWarga") || "[]",
+  );
+
+  if (!Array.isArray(storedData)) {
+    console.error("Data warga di localStorage bukan array:", storedData);
+    setDataWarga([]);
     return;
   }
 
-  const mapped = data.map((item) => ({
-    ...item,
-    jumlahAnggota: item.jumlah_anggota,
-    jumlahTanggungan: item.jumlah_tanggungan,
-    statusApproval: "Pending",
-    nilaiAkhir: 0,
-  }));
+  const filteredData = storedData
+    .filter(
+      (item: PenilaianData) =>
+        item.terkirim && item.nilaiAkhir !== null,
+    )
+    .map((item: PenilaianData) => ({
+      ...item,
+      statusApproval: item.statusApproval || "Pending",
+    }));
 
-  setDataWarga(mapped);
-});}
+  setDataWarga(filteredData);
+};
 
   const currentUser = JSON.parse(
     localStorage.getItem("currentUser") || "{}",
@@ -730,7 +734,7 @@ const loadData = () => {
                                       <img
                                         src={selectedWarga.fotoRumah}
                                         alt="Foto Rumah"
-                                        className="w-full h-full max-h-[390px] object-contain"
+                                        className="w-full h-full max-h-[280px] object-contain"
                                       />
                                     </div>
                                   </div>

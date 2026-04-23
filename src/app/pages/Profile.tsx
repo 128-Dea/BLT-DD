@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { ArrowLeft, User, Mail, Briefcase, Calendar, Edit2, Save, Trash2, Camera } from 'lucide-react';
 import { updateUserProfile } from '../utils/auth';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+
 export function Profile() {
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -20,6 +22,8 @@ export function Profile() {
       : 'Belum tersedia';
   const [isEditing, setIsEditing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string>(currentUser.profilePhoto || '');
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     nama: currentUser.nama || '',
     email: currentUser.email || '',
@@ -27,9 +31,28 @@ export function Profile() {
     profilePhoto: currentUser.profilePhoto || ''
   });
 
+  const uploadProfilePhoto = async (file: File) => {
+    const payload = new FormData();
+    payload.append('profile_photo', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/profile/upload-photo/`, {
+      method: 'POST',
+      body: payload,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Upload foto profil gagal');
+    }
+
+    return result.profile_photo as string;
+  };
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const photoUrl = reader.result as string;
@@ -42,6 +65,7 @@ export function Profile() {
   
   const handleRemovePhoto = () => {
     if (confirm("Hapus foto profil?")) {
+      setSelectedPhotoFile(null);
       setProfilePhoto("");
       setFormData({ ...formData, profilePhoto: "" });
     }
@@ -53,16 +77,27 @@ export function Profile() {
     }
 
     try {
+      setIsSaving(true);
+      let finalProfilePhoto = profilePhoto;
+
+      if (selectedPhotoFile) {
+        finalProfilePhoto = await uploadProfilePhoto(selectedPhotoFile);
+      }
+
       await updateUserProfile(currentUser.uid, {
         nama: formData.nama,
-        profilePhoto
+        profilePhoto: finalProfilePhoto
       });
 
+      setProfilePhoto(finalProfilePhoto);
+      setSelectedPhotoFile(null);
       alert('Profil berhasil diperbarui!');
       setIsEditing(false);
     } catch (error) {
       console.error(error);
       alert('Gagal memperbarui profil.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -196,16 +231,18 @@ export function Profile() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSave}
+                    disabled={isSaving}
                     className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-lg"
                   >
                     <Save className="w-4 h-4" />
-                    <span>Simpan</span>
+                    <span>{isSaving ? 'Menyimpan...' : 'Simpan'}</span>
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setIsEditing(false);
+                      setSelectedPhotoFile(null);
                       setProfilePhoto(currentUser.profilePhoto || '');
                       setFormData({
                         nama: currentUser.nama || '',
@@ -290,6 +327,9 @@ export function Profile() {
                   <p className="text-sm text-gray-600 mb-1">Tanggal Bergabung</p>
                   <p className="text-lg font-semibold text-gray-900">
                     {formattedJoinDate}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tanggal ini dibuat otomatis saat akun didaftarkan dan tidak dapat diubah
                   </p>
                 </div>
               </motion.div>

@@ -398,7 +398,7 @@ const handleDelete = (id: string, nama: string) => {
                                       <img
                                         src={selectedWarga.fotoRumah}
                                         alt="Foto Rumah"
-                                        className="w-full h-full max-h-[390px] object-contain"
+                                        className="w-full h-full max-h-[280px] object-contain"
                                       />
                                     </div>
                                   </div>

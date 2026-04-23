@@ -12,6 +12,24 @@ TEST_MEDIA_ROOT = Path(__file__).resolve().parent.parent / 'test_media'
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class WargaUploadTests(TestCase):
+    def test_upload_profile_photo_saves_physical_file(self):
+        profile_photo = SimpleUploadedFile(
+            'profile.jpg',
+            b'fake-profile-content',
+            content_type='image/jpeg',
+        )
+
+        response = self.client.post(
+            '/api/profile/upload-photo/',
+            data={
+                'profile_photo': profile_photo,
+            },
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = json.loads(response.content)
+        self.assertIn('/media/profile/', payload['profile_photo'])
+
     def test_upload_media_saves_physical_files(self):
         rumah = SimpleUploadedFile(
             'rumah.jpg',

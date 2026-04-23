@@ -94,7 +94,8 @@ const handleKirimKepala = () => {
     if (w.id === selectedWarga.id) {
       return {
         ...w,
-        terkirim: true
+        terkirim: true,
+        statusApproval: w.statusApproval || 'Pending',
       };
     }
     return w;
@@ -109,7 +110,8 @@ const handleKirimKepala = () => {
     if (w.id === selectedWarga.id) {
       return {
         ...w,
-        terkirim: true
+        terkirim: true,
+        statusApproval: w.statusApproval || 'Pending',
       };
     }
     return w;
@@ -119,7 +121,8 @@ const handleKirimKepala = () => {
 
   setSelectedWarga({
     ...selectedWarga,
-    terkirim: true
+    terkirim: true,
+    statusApproval: selectedWarga.statusApproval || 'Pending',
   });
 
   // LOG RIWAYAT

@@ -336,7 +336,7 @@ export const updateUserProfile = async (
 
   try {
     ensureFirebaseReady();
-    await updateDoc(userDocRef(uid), payload);
+    await setDoc(userDocRef(uid), payload, { merge: true });
   } catch (error) {
     if (!isPermissionError(error)) {
       throw error;

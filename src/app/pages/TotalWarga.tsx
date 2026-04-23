@@ -617,7 +617,7 @@ const getPendapatanLabel = (kategori: string) => {
                   <img
                     src={editForm.fotoRumah || selectedWarga.fotoRumah}
                     alt="Foto Rumah"
-                    className="w-full h-full max-h-[390px] object-contain cursor-pointer"
+                    className="w-full h-full max-h-[280px] object-contain cursor-pointer"
                     onDoubleClick={() => {
                       if (isEditing) {
                         document.getElementById("uploadFotoRumah")?.click();
