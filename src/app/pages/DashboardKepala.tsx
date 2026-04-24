@@ -48,7 +48,7 @@ interface PenilaianData {
   statusKK?: string;
   statusTinggal?: string;
   sumberAir?: string;
-  statusKerjaTetap?: string;
+  statusPekerjaan?: string;
   kepemilikanUsaha?: string;
   riwayatBantuan?: string;
   kepemilikanAset?: string;
@@ -70,7 +70,7 @@ useEffect(() => {
 
 const loadData = () => {
   const storedData = JSON.parse(
-    localStorage.getItem("dataWarga") || "[]",
+    localStorage.getItem("dataWarga") || "[]"
   );
 
   if (!Array.isArray(storedData)) {
@@ -79,15 +79,24 @@ const loadData = () => {
     return;
   }
 
-  const filteredData = storedData
-    .filter(
-      (item: PenilaianData) =>
-        item.terkirim && item.nilaiAkhir !== null,
-    )
-    .map((item: PenilaianData) => ({
-      ...item,
-      statusApproval: item.statusApproval || "Pending",
-    }));
+  // Pastikan semua data punya statusApproval default = Pending
+  const normalizedData = storedData.map((item: PenilaianData) => ({
+    ...item,
+    statusApproval: item.statusApproval || "Pending",
+  }));
+
+  // Simpan ulang ke localStorage agar permanen
+  localStorage.setItem(
+    "dataWarga",
+    JSON.stringify(normalizedData)
+  );
+
+  const filteredData = normalizedData.filter(
+    (item) =>
+      item.terkirim &&
+      item.nilaiAkhir !== null &&
+      item.nilaiAkhir !== undefined
+  );
 
   setDataWarga(filteredData);
 };
@@ -200,15 +209,14 @@ const loadData = () => {
   };
 
   const getPendapatanLabel = (kategori: string) => {
-  const labels: any = {
-    sangat_miskin: "Sangat Miskin",
-    miskin: "Miskin",
-    rentan_miskin: "Rentan Miskin",
-    tidak_layak: "Tidak Layak",
+    const labels: Record<string, string> = {
+      sangat_miskin: "Kurang dari Rp 1.500.000",
+      miskin: "Rp 1.500.000 - Rp 2.500.000",
+      rentan_miskin: "Rp 2.500.000 - Rp 3.500.000",
+      tidak_layak: "Lebih dari Rp 3.500.000",
+    };
+    return labels[kategori] || kategori;
   };
-
-  return labels[kategori] || kategori;
-};
   const capitalizeFirst = (text: string) => {
   if (!text) return "";
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -493,118 +501,103 @@ const loadData = () => {
                           : "border-gray-200 hover:shadow-md bg-white"
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <h3
-                              className={`text-lg font-semibold ${isProcessed ? "text-gray-500" : "text-gray-900"}`}
-                            >
-                              {item.nama}
-                            </h3>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                item.status === "Layak"
-                                  ? isProcessed
-                                    ? "bg-gray-200 text-gray-600"
-                                    : "bg-blue-100 text-blue-700"
-                                  : isProcessed
-                                    ? "bg-gray-200 text-gray-600"
-                                    : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {item.status}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-600 mb-1">
-                                NIK
-                              </p>
-                              <p
-                                className={`font-medium ${isProcessed ? "text-gray-500" : "text-gray-900"}`}
-                              >
-                                {item.nik}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 mb-1">
-                                Nilai Akhir
-                              </p>
-                              <p
-                                className={`font-medium ${isProcessed ? "text-gray-500" : "text-gray-900"}`}
-                              >
-                                {item.nilaiAkhir.toFixed(2)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 mb-1">
-                                Tanggal
-                              </p>
-                              <p
-                                className={`font-medium ${isProcessed ? "text-gray-500" : "text-gray-900"}`}
-                              >
-                                {item.tanggal}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                     <div className="flex items-start justify-between">
+  <div className="flex-1">
+    <div className="flex items-center space-x-3 mb-3">
+      <h3
+        className={`text-lg font-semibold ${
+          isProcessed ? "text-gray-500" : "text-gray-900"
+        }`}
+      >
+        {item.nama}
+      </h3>
 
-                        {item.statusApproval === "Pending" && (
-                          <div className="flex items-center space-x-2 ml-6">
-                        
-                            {/* BUTTON LIHAT DETAIL */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                const detail = getDetailWarga(item.id);
-                                setSelectedWarga(detail);
-                              }}
-                              className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </motion.button>
-                        
-                            {/* APPROVE */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleApprove(item.id, true)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Setujui</span>
-                            </motion.button>
-                        
-                            {/* REJECT */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleApprove(item.id, false)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              <span>Tolak</span>
-                            </motion.button>
-                          </div>
-                        )}
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-medium ${
+          item.status === "Layak"
+            ? isProcessed
+              ? "bg-gray-200 text-gray-600"
+              : "bg-blue-100 text-blue-700"
+            : isProcessed
+            ? "bg-gray-200 text-gray-600"
+            : "bg-red-100 text-red-700"
+        }`}
+      >
+        {item.status}
+      </span>
+    </div>
 
-                        {item.statusApproval ===
-                          "Disetujui" && (
-                          <div className="ml-6">
-                            <span className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-medium">
-                              ✓ Disetujui
-                            </span>
-                          </div>
-                        )}
+    <div className="grid grid-cols-3 gap-4 text-sm">
+      <div>
+        <p className="text-gray-600 mb-1">NIK</p>
+        <p className="font-medium">{item.nik}</p>
+      </div>
 
-                        {item.statusApproval === "Ditolak" && (
-                          <div className="ml-6">
-                            <span className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium">
-                              ✗ Ditolak
-                            </span>
-                          </div>
-                        )}
+      <div>
+        <p className="text-gray-600 mb-1">Nilai Akhir</p>
+        <p className="font-medium">
+          {item.nilaiAkhir.toFixed(2)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-gray-600 mb-1">Tanggal</p>
+        <p className="font-medium">{item.tanggal}</p>
+      </div>
+    </div>
+  </div>
+
+  <div className="flex items-center space-x-2 ml-6">
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => {
+        const detail = getDetailWarga(item.id);
+        setSelectedWarga(detail);
+      }}
+      className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
+    >
+      <Eye className="w-4 h-4" />
+    </motion.button>
+
+    {item.statusApproval === "Pending" && (
+      <>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => handleApprove(item.id, true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg"
+        >
+          <CheckCircle className="w-4 h-4" />
+          <span>Setujui</span>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => handleApprove(item.id, false)}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg"
+        >
+          <XCircle className="w-4 h-4" />
+          <span>Tolak</span>
+        </motion.button>
+      </>
+    )}
+
+    {item.statusApproval === "Disetujui" && (
+      <span className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-medium">
+        ✓ Disetujui
+      </span>
+    )}
+
+    {item.statusApproval === "Ditolak" && (
+      <span className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium">
+        ✗ Ditolak
+      </span>
+    )}
+  </div>
+
+
                       {/* MODAL DETAIL */}
                       {selectedWarga && (
                         <motion.div
@@ -698,7 +691,7 @@ const loadData = () => {
 
       <div>
         <p className="text-sm text-gray-600">Jumlah Tanggungan</p>
-        <p className="font-medium">{capitalizeFirst(selectedWarga?.jumlahAnggota || "")}</p>
+        <p className="font-medium">{capitalizeFirst(selectedWarga?.jumlahTanggungan || "")}</p>
       </div>
 
       <div>
@@ -753,7 +746,7 @@ const loadData = () => {
       <div>
         <p className="text-sm text-gray-600">Pendapatan</p>
         <p className="font-medium">
-          {capitalizeFirst(selectedWarga?.pendapatan || "")}
+          {getPendapatanLabel(selectedWarga?.pendapatan || "")}
         </p>
       </div>
 
@@ -764,7 +757,7 @@ const loadData = () => {
 
       <div>
         <p className="text-sm text-gray-600">Status Kerja</p>
-        <p className="font-medium">{capitalizeFirst(selectedWarga?.statusKerjaTetap || "")}</p>
+        <p className="font-medium">{capitalizeFirst(selectedWarga?.statusPekerjaan || "")}</p>
       </div>
 
       <div>
@@ -809,30 +802,31 @@ const loadData = () => {
       </div>
     </div>
 
-   {selectedWarga.fotoAset &&
-Array.isArray(selectedWarga.fotoAset) && (
-  <div className="mt-4">
-    <p className="text-sm text-gray-600 mb-2">
-      Foto Aset
-    </p>
+  {selectedWarga.fotoAset &&
+  Array.isArray(selectedWarga.fotoAset) &&
+  selectedWarga.fotoAset.length > 0 && (
+    <div className="mt-4">
+      <p className="text-sm text-gray-600 mb-2">
+        Foto Aset
+      </p>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {selectedWarga.fotoAset.map((foto, index) => (
-        <div
-          key={index}
-          className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
-            <img
-              src={foto}
-              alt={`Foto Aset ${index + 1}`}
-              className="w-full h-full max-h-[230px] object-contain"
-            />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {selectedWarga.fotoAset.map((foto, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
+              <img
+                src={foto}
+                alt={`Foto Aset ${index + 1}`}
+                className="w-full h-full max-h-[230px] object-contain"
+              />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
 )}
   </div> 
 </div>

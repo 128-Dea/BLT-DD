@@ -19,7 +19,7 @@ interface WargaData {
   statusKK?: string;
 statusTinggal?: string;
 sumberAir?: string;
-statusKerjaTetap?: string;
+statusPekerjaan?: string;
 kepemilikanUsaha?: string;
 riwayatBantuan?: string;
 kepemilikanAset?: string;
@@ -417,7 +417,7 @@ const handleDelete = (id: string, nama: string) => {
       <div>
         <p className="text-sm text-gray-600">Pendapatan</p>
         <p className="font-medium">
-          {capitalizeFirst(selectedWarga.pendapatan)}
+          {getPendapatanLabel(selectedWarga.pendapatan)}
         </p>
       </div>
 
@@ -428,7 +428,7 @@ const handleDelete = (id: string, nama: string) => {
 
       <div>
         <p className="text-sm text-gray-600">Status Kerja</p>
-        <p className="font-medium">{capitalizeFirst(selectedWarga?.statusKerjaTetap || "")}</p>
+        <p className="font-medium">{capitalizeFirst(selectedWarga?.statusPekerjaan || "")}</p>
       </div>
 
       <div>
@@ -474,29 +474,30 @@ const handleDelete = (id: string, nama: string) => {
     </div>
 
 {selectedWarga.fotoAset &&
-Array.isArray(selectedWarga.fotoAset) && (
-  <div className="mt-4">
-    <p className="text-sm text-gray-600 mb-2">
-      Foto Aset
-    </p>
+  Array.isArray(selectedWarga.fotoAset) &&
+  selectedWarga.fotoAset.length > 0 && (
+    <div className="mt-4">
+      <p className="text-sm text-gray-600 mb-2">
+        Foto Aset
+      </p>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {selectedWarga.fotoAset.map((foto, index) => (
-        <div
-          key={index}
-          className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
-            <img
-              src={foto}
-              alt={`Foto Aset ${index + 1}`}
-              className="w-full h-full max-h-[230px] object-contain"
-            />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {selectedWarga.fotoAset.map((foto, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
+              <img
+                src={foto}
+                alt={`Foto Aset ${index + 1}`}
+                className="w-full h-full max-h-[230px] object-contain"
+              />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
 )}
     
  </div>

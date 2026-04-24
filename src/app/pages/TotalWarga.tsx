@@ -793,7 +793,16 @@ const getPendapatanLabel = (kategori: string) => {
             </div>
           </div>
 
- {(editForm.fotoAset?.length || selectedWarga.fotoAset?.length) && (
+{selectedWarga.kepemilikanAset &&
+ selectedWarga.kepemilikanAset !== "tidak_ada" &&
+ Array.isArray(
+   editForm.fotoAset?.length
+     ? editForm.fotoAset
+     : selectedWarga.fotoAset
+ ) &&
+ (
+   (editForm.fotoAset?.length || selectedWarga.fotoAset?.length || 0) > 0
+ ) && (
   <div className="mt-4">
     <p className="text-sm text-gray-600 mb-2">Foto Aset</p>
 
