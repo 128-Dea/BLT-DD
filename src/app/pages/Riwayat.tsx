@@ -44,7 +44,7 @@ export function Riwayat() {
     const data = await loadAccessibleWarga();
 
     const mapped: RiwayatData[] = data
-      .filter((w: any) => w.terkirim && w.nilaiAkhir !== null)
+      .filter((w: any) => w.nilaiAkhir !== null && w.nilaiAkhir !== undefined)
       .map((w: any) => ({
         id: w.id,
         nik: w.nik || "",

@@ -29,6 +29,8 @@ export function About() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'app' | 'developers'>('app');
   const teamPhoto = '/src/assets/tim.jpeg';
+  const getGmailComposeUrl = (email: string) =>
+    `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
 
   const developers: Developer[] = [
     {
@@ -38,7 +40,7 @@ export function About() {
       emoji: '👩',
       github: 'https://github.com/Berliana003',
       linkedin: 'https://www.linkedin.com/in/dewi-berliana-9a342837a/',
-      instagram: 'https://www.instagram.com/berliand_aa?igsh=MTVyeDNpY2V2NHVjOQ==',
+      instagram: 'https://www.instagram.com/berliand_aa/',
       email: '25051204284@mhs.unesa.ac.id',
     },
     {
@@ -47,9 +49,8 @@ export function About() {
       image: '/src/assets/nailong 2.jpg',
       emoji: '👩',
       github: 'https://github.com/128-Dea',
-      linkedin:
-        'https://www.linkedin.com/in/dea-suci-ramadani-99bb73401?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app',
-      instagram: 'https://www.instagram.com/dhesurha_?igsh=bmM2aXEzYXlrcXJy',
+      linkedin: 'https://www.linkedin.com/in/dea-suci-ramadani-99bb73401/',
+      instagram: 'https://www.instagram.com/dhesurha_/',
       email: '25051204296@mhs.unesa.ac.id',
     },
     {
@@ -59,7 +60,7 @@ export function About() {
       emoji: '👩',
       github: 'https://github.com/Chantikaputrii',
       linkedin: 'https://www.linkedin.com/in/chantika-putri/',
-      instagram: 'https://www.instagram.com/channntk?igsh=MXhjb3gycmhwbmg4Nw==',
+      instagram: 'https://www.instagram.com/channntk/',
       email: '25051204264@mhs.unesa.ac.id',}
   ];
 
@@ -340,7 +341,9 @@ export function About() {
                       <motion.a
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.9 }}
-                        href={`mailto:${dev.email}`}
+                        href={getGmailComposeUrl(dev.email)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="p-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition"
                         title="Email"
                       >

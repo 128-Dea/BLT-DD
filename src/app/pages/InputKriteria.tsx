@@ -1,8 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Calculator, AlertCircle, CheckCircle, TrendingDown } from 'lucide-react';
-import { logActivity } from '../utils/activityLogger';
+import {
+  ArrowLeft,
+  Calculator,
+  AlertCircle,
+  CheckCircle,
+  TrendingDown,
+  BookOpen,
+  Users,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { loadAccessibleWarga, updateWargaById } from '../utils/wargaData';
 
 const KRITERIA = [
@@ -20,11 +29,130 @@ const SKALA_AHP = [
   { nilai: 5, label: '5 - Sangat Penting', deskripsi: 'Kriteria pertama sangat penting dari kriteria kedua' },
 ];
 
+const PETUNJUK_PENGISIAN = [
+  {
+    judul: '1. Pendapatan vs Jumlah Tanggungan',
+    items: [
+      <>Pendapatan &lt; Rp1,5 jt dan tanggungan &gt; 5 orang → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan &lt; Rp1,5 jt dan tanggungan 3–5 orang → <strong>Lebih Penting (4)</strong></>,
+      <>Pendapatan &lt; Rp1,5 jt dan tanggungan ≤ 2 orang → <strong>Lebih Penting (4)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan tanggungan &gt; 5 orang → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan tanggungan 3–5 orang → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan tanggungan ≤ 2 orang → <strong>Lebih Penting (4)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan tanggungan &gt; 5 orang → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan tanggungan 3–5 orang → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan tanggungan ≤ 2 orang → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan tanggungan &gt; 5 orang → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan tanggungan 3–5 orang → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan tanggungan ≤ 2 orang → <strong>Sangat Kurang Penting (1)</strong></>,
+    ],
+  },
+
+  {
+    judul: '2. Pendapatan vs Pekerjaan',
+    items: [
+      <>Pendapatan &lt; Rp1,5 jt dan pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan &lt; Rp1,5 jt dan pekerjaan tetap → <strong>Lebih Penting (4)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan pekerjaan tidak tetap → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan pekerjaan tetap → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan pekerjaan tidak tetap → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan pekerjaan tetap → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan pekerjaan tidak tetap → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan pekerjaan tetap → <strong>Sangat Kurang Penting (1)</strong></>,
+    ],
+  },
+
+  {
+    judul: '3. Pendapatan vs Kondisi Rumah',
+    items: [
+      <>Pendapatan &lt; Rp1,5 jt dan rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan &lt; Rp1,5 jt dan rumah layak milik sendiri → <strong>Lebih Penting (4)</strong></>,
+      <>Pendapatan &lt; Rp1,5 jt dan rumah layak tapi kontrak → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan rumah tidak layak/rusak → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan rumah layak milik sendiri → <strong>Sama Penting (3)</strong></>,
+      <>Pendapatan Rp1,5–2,5 jt dan rumah layak tapi kontrak → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan rumah tidak layak/rusak → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan rumah layak milik sendiri → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan Rp2,5–3,5 jt dan rumah layak tapi kontrak → <strong>Kurang Penting (2)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan rumah tidak layak/rusak → <strong>Sangat Kurang Penting (1)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan rumah layak milik sendiri → <strong>Sangat Kurang Penting (1)</strong></>,
+      <>Pendapatan &gt; Rp3,5 jt dan rumah layak tapi kontrak → <strong>Kurang Penting (2)</strong></>,
+    ],
+  },
+
+  {
+    judul: '4. Jumlah Tanggungan vs Pekerjaan',
+    items: [
+      <>Tanggungan &gt; 5 orang dan pekerjaan tetap → <strong>Lebih Penting (4)</strong></>,
+      <>Tanggungan &gt; 5 orang dan pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></>,
+      <>Tanggungan 3–5 orang dan pekerjaan tetap → <strong>Lebih Penting (4)</strong></>,
+      <>Tanggungan 3–5 orang dan pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></>,
+      <>Tanggungan ≤ 2 orang dan pekerjaan tetap → <strong>Kurang Penting (2)</strong></>,
+      <>Tanggungan ≤ 2 orang dan pekerjaan tidak tetap → <strong>Kurang Penting (2)</strong></>,
+    ],
+  },
+
+  {
+    judul: '5. Jumlah Tanggungan vs Kondisi Rumah',
+    items: [
+      <>Tanggungan &gt; 5 orang dan rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></>,
+      <>Tanggungan &gt; 5 orang dan rumah layak milik sendiri → <strong>Lebih Penting (4)</strong></>,
+      <>Tanggungan &gt; 5 orang dan rumah layak tapi kontrak → <strong>Lebih Penting (4)</strong></>,
+      <>Tanggungan 3–5 orang dan rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></>,
+      <>Tanggungan 3–5 orang dan rumah layak milik sendiri → <strong>Lebih Penting (4)</strong></>,
+      <>Tanggungan 3–5 orang dan rumah layak tapi kontrak → <strong>Sama Penting (3)</strong></>,
+      <>Tanggungan ≤ 2 orang dan rumah tidak layak/rusak → <strong>Kurang Penting (2)</strong></>,
+      <>Tanggungan ≤ 2 orang dan rumah layak milik sendiri → <strong>Kurang Penting (2)</strong></>,
+      <>Tanggungan ≤ 2 orang dan rumah layak tapi kontrak → <strong>Sama Penting (3)</strong></>,
+    ],
+  },
+
+  {
+    judul: '6. Pekerjaan vs Kondisi Rumah',
+    items: [
+      <>Pekerjaan tidak tetap dan rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></>,
+      <>Pekerjaan tidak tetap dan rumah layak milik sendiri → <strong>Lebih Penting (4)</strong></>,
+      <>Pekerjaan tidak tetap dan rumah layak tapi kontrak → <strong>Sama Penting (3)</strong></>,
+      <>Pekerjaan tetap dan rumah tidak layak/rusak → <strong>Kurang Penting (2)</strong></>,
+      <>Pekerjaan tetap dan rumah layak milik sendiri → <strong>Kurang Penting (2)</strong></>,
+      <>Pekerjaan tetap dan rumah layak tapi kontrak → <strong>Kurang Penting (2)</strong></>,
+      <>Pekerjaan tidak tetap dan rumah rusak berat → <strong>Sangat Kurang Penting (1)</strong></>,
+    ],
+  },
+];
+
+interface WargaData {
+  id: string;
+  nik: string;
+  nama: string;
+  alamat: string;
+  jumlahAnggota: string;
+  jumlahTanggungan: string;
+  pendapatan: string;
+  pekerjaan: string;
+  tanggal: string;
+  nilaiAkhir: number | null;
+  fotoRumah?: string;
+  statusKK?: string;
+  statusTinggal?: string;
+  sumberAir?: string;
+  statusPekerjaan?: string;
+  kepemilikanUsaha?: string;
+  riwayatBantuan?: string;
+  kepemilikanAset?: string;
+  aset?: string;
+  fotoAset?: string[];
+}
+
 export function InputKriteria() {
   const navigate = useNavigate();
-  const [perbandingan, setPerbandingan] = useState<{[key: string]: number}>({});
+  const [perbandingan, setPerbandingan] = useState<{ [key: string]: number }>({});
   const [showResult, setShowResult] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [currentWarga, setCurrentWarga] = useState<WargaData | null>(null);
+  const [loadedWarga, setLoadedWarga] = useState<WargaData[]>([]);
+  const [showPetunjuk, setShowPetunjuk] = useState(false);
+  const [showDataWarga, setShowDataWarga] = useState(false);
 
   const getPairs = () => {
     const pairs = [];
@@ -42,6 +170,42 @@ export function InputKriteria() {
 
   const pairs = getPairs();
 
+  useEffect(() => {
+    const loadCurrentWarga = async () => {
+      const data = await loadAccessibleWarga();
+      const mappedData: WargaData[] = data.map((w: any) => ({
+        id: w.id,
+        nik: w.nik ?? '',
+        nama: w.nama ?? '',
+        alamat: w.alamat ?? '',
+        jumlahAnggota: w.jumlahAnggota ?? '',
+        jumlahTanggungan: w.jumlahTanggungan ?? '',
+        pendapatan: w.pendapatan ?? '',
+        pekerjaan: w.pekerjaan ?? '',
+        tanggal: w.tanggal ?? '',
+        nilaiAkhir: w.nilaiAkhir ?? null,
+        fotoRumah: w.fotoRumah,
+        statusKK: w.statusKK,
+        statusTinggal: w.statusTinggal,
+        sumberAir: w.sumberAir,
+        statusPekerjaan: w.statusPekerjaan,
+        kepemilikanUsaha: w.kepemilikanUsaha,
+        riwayatBantuan: w.riwayatBantuan,
+        kepemilikanAset: w.kepemilikanAset,
+        aset: w.aset,
+        fotoAset: w.fotoAset,
+      }));
+
+      setLoadedWarga(mappedData);
+
+      const currentWargaId = localStorage.getItem('currentWargaId');
+      const selected = mappedData.find((warga) => warga.id === currentWargaId) || null;
+      setCurrentWarga(selected);
+    };
+
+    void loadCurrentWarga();
+  }, []);
+
   const handlePerbandinganChange = (pairKey: string, value: number) => {
     setPerbandingan({
       ...perbandingan,
@@ -49,7 +213,63 @@ export function InputKriteria() {
     });
   };
 
-  const calculateAHP = (dataWarga: any[] = []) => {
+  const getPendapatanLabel = (kategori: string) => {
+    const labels: Record<string, string> = {
+      sangat_miskin: 'Kurang dari Rp 1.500.000',
+      miskin: 'Rp 1.500.000 - Rp 2.500.000',
+      rentan_miskin: 'Rp 2.500.000 - Rp 3.500.000',
+      tidak_layak: 'Lebih dari Rp 3.500.000',
+    };
+
+    return labels[kategori] || kategori || '-';
+  };
+
+  const capitalizeFirst = (text?: string) => {
+    if (!text) return '-';
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
+  const getRiwayatBantuanLabel = (value?: string) => {
+    if (!value) return '-';
+
+    const normalizedValue = value.toLowerCase().trim();
+
+    if (normalizedValue === 'belum_pernah' || normalizedValue === 'belum pernah') {
+      return 'Belum Pernah';
+    }
+
+    if (
+      normalizedValue === 'blt' ||
+      normalizedValue === 'sedang_menerima' ||
+      normalizedValue === 'sedang menerima'
+    ) {
+      return 'Sedang Menerima';
+    }
+
+    if (normalizedValue === 'pernah') {
+      return 'Pernah';
+    }
+
+    return '-';
+  };
+
+  const getKepemilikanAsetLabel = (value?: string) => {
+    if (!value) return 'Tidak Ada';
+
+    const normalizedValue = value.toLowerCase().trim();
+
+    if (normalizedValue === 'tidak' || normalizedValue === 'tidak_ada') {
+      return 'Tidak Ada';
+    }
+
+    if (normalizedValue === 'kendaraan') return 'Kendaraan';
+    if (normalizedValue === 'tanah_bangunan') return 'Tanah/Bangunan';
+    if (normalizedValue === 'lainnya') return 'Lainnya';
+
+    return capitalizeFirst(value);
+  };
+
+  const calculateAHP = (dataWarga: WargaData[] = []) => {
     const n = KRITERIA.length;
     const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(1));
 
@@ -106,7 +326,7 @@ export function InputKriteria() {
     const CR = CI / RI;
 
     const currentWargaId = localStorage.getItem('currentWargaId');
-    const warga = dataWarga.find((w: any) => w.id === currentWargaId);
+    const warga = dataWarga.find((w) => w.id === currentWargaId);
 
     let nilaiAkhir = 0;
     if (warga) {
@@ -116,7 +336,7 @@ export function InputKriteria() {
       else if (warga.pendapatan === 'rentan_miskin') scorePendapatan = 0.6;
       else scorePendapatan = 0.2;
 
-      const scoreTanggungan = Math.min(parseInt(warga.jumlahTanggungan) / 5, 1);
+      const scoreTanggungan = Math.min(parseInt(warga.jumlahTanggungan || '0', 10) / 5, 1);
       const scorePekerjaan = warga.statusPekerjaan === 'tidak_tetap' ? 0.8 : 0.5;
       const scoreRumah = warga.statusTinggal === 'kontrak' ? 0.8 : 0.5;
 
@@ -142,6 +362,11 @@ export function InputKriteria() {
   const handleHitung = () => {
     const allFilled = pairs.every(pair => perbandingan[pair.key] !== undefined);
 
+    if (!currentWarga) {
+      alert('Data warga yang akan dihitung tidak ditemukan. Silakan pilih kembali dari halaman Data Warga.');
+      return;
+    }
+
     if (!allFilled) {
       alert('Mohon lengkapi semua perbandingan kriteria!');
       return;
@@ -150,7 +375,7 @@ export function InputKriteria() {
     setCalculating(true);
     setTimeout(async () => {
       const dataWarga = await loadAccessibleWarga();
-      const result = calculateAHP(dataWarga);
+      const result = calculateAHP(dataWarga as WargaData[]);
 
       const currentWargaId = localStorage.getItem('currentWargaId');
       if (currentWargaId) {
@@ -171,11 +396,10 @@ export function InputKriteria() {
     navigate('/hasil-penilaian');
   };
 
-  const result = showResult ? calculateAHP(JSON.parse(localStorage.getItem('dataWarga') || '[]')) : null;
+  const result = showResult ? calculateAHP(loadedWarga) : null;
 
   return (
     <div className="min-h-screen bg-[#e6f0fa]">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center space-x-4">
@@ -197,92 +421,226 @@ export function InputKriteria() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Info Box - Petunjuk Pengisian */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 text-left group mb-6"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
         >
-          <h3 className="font-semibold text-[#386fa4] mb-2">📚 Petunjuk Pengisian</h3>
-          <p className="text-[#386fa4] text-sm mb-4">
-            Bandingkan tingkat kepentingan setiap kriteria dengan kriteria lainnya.
-            Gunakan skala 5 tingkat:{' '}
-            <strong>1</strong> = Sangat Kurang Penting,{' '}
-            <strong>2</strong> = Kurang Penting,{' '}
-            <strong>3</strong> = Sama Penting,{' '}
-            <strong>4</strong> = Lebih Penting,{' '}
-            <strong>5</strong> = Sangat Penting.
+          <p className="text-[#386fa4] text-sm leading-relaxed">
+            🔎 Bandingkan tingkat kepentingan setiap kriteria dengan kriteria lainnya.
+            Gunakan skala 5 tingkat: <strong>1</strong> = Sangat Kurang Penting, <strong>2</strong> = Kurang Penting,
+            <strong> 3</strong> = Sama Penting, <strong>4</strong> = Lebih Penting, dan <strong>5</strong> = Sangat Penting.
           </p>
 
-          <div className="text-[#386fa4] text-sm space-y-4 leading-relaxed">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="button"
+              onClick={() => setShowPetunjuk((prev) => !prev)}
+              className="flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-left text-[#386fa4] transition"
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <BookOpen className="h-5 w-5" />
+                Lihat Petunjuk Pengisian
+              </span>
+              {showPetunjuk ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </motion.button>
 
-            <div>
-              <p className="font-semibold">📌 1. Pendapatan vs Jumlah Tanggungan</p>
-              <ul className="ml-4 list-disc space-y-1 mt-1">
-                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> tanggungan &gt; 5 orang → <strong>Sama Penting (3)</strong></li>
-                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> tanggungan ≤ 2 orang → <strong>Pendapatan Lebih Penting (4)</strong></li>
-                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> tanggungan &gt; 5 orang → <strong>Tanggungan Lebih Penting (4)</strong></li>
-                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> tanggungan ≤ 2 orang → <strong>Kurang Penting (2)</strong></li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="font-semibold">📌 2. Pendapatan vs Pekerjaan</p>
-              <ul className="ml-4 list-disc space-y-1 mt-1">
-                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
-                <li>Pendapatan Rp1,5–3,5 jt <strong>dan</strong> pekerjaan tidak tetap → <strong>Pekerjaan Lebih Penting (4)</strong></li>
-                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> pekerjaan tetap → <strong>Pendapatan Lebih Penting (4)</strong></li>
-                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> pekerjaan tetap → <strong>Kurang Penting (2)</strong></li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="font-semibold">📌 3. Pendapatan vs Kondisi Rumah</p>
-              <ul className="ml-4 list-disc space-y-1 mt-1">
-                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> rumah tidak layak/rusak → <strong>Kondisi Rumah Sangat Penting (5)</strong></li>
-                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></li>
-                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> rumah layak/milik sendiri → <strong>Pendapatan Lebih Penting (4)</strong></li>
-                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> rumah layak/milik sendiri → <strong>Kurang Penting (2)</strong></li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="font-semibold">📌 4. Jumlah Tanggungan vs Pekerjaan</p>
-              <ul className="ml-4 list-disc space-y-1 mt-1">
-                <li>Tanggungan &gt; 5 orang <strong>dan</strong> pekerjaan tetap → <strong>Tanggungan Lebih Penting (4)</strong></li>
-                <li>Tanggungan ≤ 2 orang <strong>dan</strong> pekerjaan tidak tetap → <strong>Pekerjaan Lebih Penting (4)</strong></li>
-                <li>Tanggungan 3–5 orang <strong>dan</strong> pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
-                <li>Tanggungan &gt; 5 orang <strong>dan</strong> pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="font-semibold">📌 5. Jumlah Tanggungan vs Kondisi Rumah</p>
-              <ul className="ml-4 list-disc space-y-1 mt-1">
-                <li>Tanggungan &gt; 5 orang <strong>dan</strong> rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></li>
-                <li>Tanggungan ≤ 2 orang <strong>dan</strong> rumah tidak layak/rusak → <strong>Kondisi Rumah Lebih Penting (4)</strong></li>
-                <li>Tanggungan &gt; 5 orang <strong>dan</strong> rumah layak/milik sendiri → <strong>Tanggungan Lebih Penting (4)</strong></li>
-                <li>Tanggungan ≤ 2 orang <strong>dan</strong> rumah layak/milik sendiri → <strong>Kurang Penting (2)</strong></li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="font-semibold">📌 6. Pekerjaan vs Kondisi Rumah</p>
-              <ul className="ml-4 list-disc space-y-1 mt-1">
-                <li>Pekerjaan tidak tetap <strong>dan</strong> rumah kontrak/tidak layak → <strong>Sama Penting (3)</strong></li>
-                <li>Pekerjaan tetap <strong>dan</strong> rumah tidak layak/rusak → <strong>Kondisi Rumah Lebih Penting (4)</strong></li>
-                <li>Pekerjaan tidak tetap <strong>dan</strong> rumah layak/milik sendiri → <strong>Pekerjaan Lebih Penting (4)</strong></li>
-                <li>Pekerjaan tetap <strong>dan</strong> rumah layak/milik sendiri → <strong>Kurang Penting (2)</strong></li>
-              </ul>
-            </div>
-
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="button"
+              onClick={() => setShowDataWarga((prev) => !prev)}
+              className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-emerald-700 transition"
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <Users className="h-5 w-5" />
+                Lihat Data Warga yang Dihitung
+              </span>
+              {showDataWarga ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </motion.button>
           </div>
+
+          <AnimatePresence>
+            {showPetunjuk && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/60 p-5 text-sm text-[#386fa4]">
+                  <div className="space-y-5 leading-relaxed">
+                    {PETUNJUK_PENGISIAN.map((section) => (
+                      <div key={section.judul}>
+                        <p className="mb-2 font-semibold">{section.judul}</p>
+                        <ul className="list-disc space-y-1 pl-5">
+                          {section.items.map((item, index) => (
+                            <li key={`${section.judul}-${index}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showDataWarga && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 rounded-xl border border-emerald-100 bg-white p-5">
+                  {!currentWarga ? (
+                    <p className="text-sm text-gray-600">
+                      Data warga belum ditemukan. Silakan kembali ke halaman Data Warga dan pilih warga yang akan dihitung.
+                    </p>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex justify-center">
+                        <div className="w-fit rounded-xl border bg-emerald-50 px-6 py-3 text-center">
+                          <h3 className="mb-1 text-sm font-semibold text-emerald-700">Tanggal Input</h3>
+                          <p className="font-medium text-gray-900">{currentWarga.tanggal || '-'}</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border bg-blue-50 p-4">
+                        <h3 className="mb-4 text-lg font-bold text-[#386fa4]">Data Pribadi</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-sm text-gray-600">NIK</p>
+                            <p className="font-medium">{currentWarga.nik || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Nama</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.nama)}</p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-sm text-gray-600">Alamat</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.alamat)}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border bg-blue-50 p-4">
+                        <h3 className="mb-4 text-lg font-bold text-[#386fa4]">Data Keluarga</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-sm text-gray-600">Jumlah Anggota</p>
+                            <p className="font-medium">{currentWarga.jumlahAnggota || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Jumlah Tanggungan</p>
+                            <p className="font-medium">{currentWarga.jumlahTanggungan || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Status KK</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.statusKK)}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border bg-blue-50 p-4">
+                        <h3 className="mb-4 text-lg font-bold text-[#386fa4]">Kondisi Tempat Tinggal</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-sm text-gray-600">Status Tempat Tinggal</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.statusTinggal)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Sumber Air</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.sumberAir)}</p>
+                          </div>
+                        </div>
+
+                        {currentWarga.fotoRumah && (
+                          <div className="mt-5">
+                            <p className="mb-2 text-sm text-gray-600">Foto Rumah</p>
+                            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                              <div className="flex min-h-[240px] items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                                <img
+                                  src={currentWarga.fotoRumah}
+                                  alt="Foto Rumah"
+                                  className="h-full max-h-[280px] w-full object-contain"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-xl border bg-blue-50 p-4">
+                        <h3 className="mb-4 text-lg font-bold text-[#386fa4]">Data Ekonomi</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-sm text-gray-600">Pendapatan</p>
+                            <p className="font-medium">{getPendapatanLabel(currentWarga.pendapatan)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Pekerjaan</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.pekerjaan)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Status Kerja</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.statusPekerjaan)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Usaha Sendiri</p>
+                            <p className="font-medium">{capitalizeFirst(currentWarga.kepemilikanUsaha)}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border bg-blue-50 p-4">
+                        <h3 className="mb-4 text-lg font-bold text-[#386fa4]">Bantuan dan Aset</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-sm text-gray-600">Riwayat Bantuan</p>
+                            <p className="font-medium">{getRiwayatBantuanLabel(currentWarga.riwayatBantuan)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Kepemilikan Aset</p>
+                            <p className="font-medium">{getKepemilikanAsetLabel(currentWarga.kepemilikanAset)}</p>
+                          </div>
+                        </div>
+
+                        {currentWarga.fotoAset && currentWarga.fotoAset.length > 0 && (
+                          <div className="mt-4">
+                            <p className="mb-2 text-sm text-gray-600">Foto Aset</p>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                              {currentWarga.fotoAset.map((foto, index) => (
+                                <div
+                                  key={`${foto}-${index}`}
+                                  className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                                >
+                                  <div className="flex min-h-[180px] items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                                    <img
+                                      src={foto}
+                                      alt={`Foto Aset ${index + 1}`}
+                                      className="h-full max-h-[230px] w-full object-contain"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* Comparison Form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -339,18 +697,22 @@ export function InputKriteria() {
                       </option>
                     ))}
                   </select>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {perbandingan[pair.key]
+                      ? SKALA_AHP.find((skala) => skala.nilai === perbandingan[pair.key])?.deskripsi
+                      : 'Pilih nilai berdasarkan petunjuk pengisian dan kondisi warga yang sedang dinilai.'}
+                  </p>
                 </div>
               </motion.div>
             ))}
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               type="button"
-              onClick={() => navigate('/input-data-warga')}
+              onClick={() => navigate('/data-warga')}
               className="px-6 py-2 text-black bg-gray-300 hover:bg-gray-400 hover:text-white rounded-lg transition"
             >
               Kembali
@@ -383,7 +745,6 @@ export function InputKriteria() {
           </div>
         </motion.div>
 
-        {/* Results */}
         <AnimatePresence>
           {showResult && result && (
             <motion.div
@@ -392,7 +753,6 @@ export function InputKriteria() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="mt-8"
             >
-              {/* Status Kelayakan */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -408,7 +768,7 @@ export function InputKriteria() {
                     <h2 className="text-5xl font-bold mb-3">{result.status}</h2>
                     <p className="text-lg opacity-90">
                       Nilai Akhir: {result.nilaiAkhir.toFixed(3)}
-                      {result.status === 'Layak' ? ' ≥ 0.60' : ' < 0.60'}
+                      {result.status === 'Layak' ? ' >= 0.60' : ' < 0.60'}
                     </p>
                   </div>
                   {result.status === 'Layak' ? (
@@ -422,7 +782,6 @@ export function InputKriteria() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Hasil Perhitungan AHP</h2>
 
-                {/* Weights */}
                 <div className="mb-6">
                   <h3 className="font-medium text-gray-900 mb-4">Bobot Kriteria</h3>
                   <div className="space-y-3">
@@ -453,10 +812,9 @@ export function InputKriteria() {
                   </div>
                 </div>
 
-                {/* Consistency */}
                 <div className="border-t border-gray-200 pt-6">
                   <h3 className="font-medium text-gray-900 mb-4">Uji Konsistensi</h3>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -482,7 +840,7 @@ export function InputKriteria() {
                     >
                       <p className="text-sm text-gray-600 mb-1">Status</p>
                       <p className={`text-lg font-bold ${result.isConsistent ? 'text-emerald-700' : 'text-red-700'}`}>
-                        {result.isConsistent ? '✓ Konsisten' : '✗ Tidak Konsisten'}
+                        {result.isConsistent ? 'Konsisten' : 'Tidak Konsisten'}
                       </p>
                     </motion.div>
                   </div>
@@ -495,7 +853,7 @@ export function InputKriteria() {
                     >
                       <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-red-900 mb-1">Perhatian!</p>
+                        <p className="text-sm font-medium text-red-900 mb-1">Perhatian</p>
                         <p className="text-sm text-red-700">
                           Hasil perbandingan tidak konsisten (CR &gt; 0.1). Disarankan untuk mengulangi
                           proses perbandingan dengan lebih hati-hati.
@@ -512,7 +870,7 @@ export function InputKriteria() {
                     onClick={handleLanjut}
                     className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] text-white rounded-lg transition shadow-lg shadow-blue-500/30"
                   >
-                    Lanjut ke Hasil Penilaian →
+                    <span>Lanjut ke Hasil Penilaian</span>
                   </motion.button>
                 </div>
               </div>

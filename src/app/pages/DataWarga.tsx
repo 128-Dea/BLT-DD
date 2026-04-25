@@ -106,6 +106,30 @@ const handleDelete = async (id: string, nama: string) => {
   if (!text) return "";
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
+
+  const getRiwayatBantuanLabel = (value?: string) => {
+    if (!value) return "-";
+
+    const normalizedValue = value.toLowerCase().trim();
+
+    if (normalizedValue === "belum_pernah" || normalizedValue === "belum pernah") {
+      return "Belum Pernah";
+    }
+
+    if (
+      normalizedValue === "sedang_menerima" ||
+      normalizedValue === "sedang menerima" ||
+      normalizedValue === "blt"
+    ) {
+      return "Sedang Menerima";
+    }
+
+    if (normalizedValue === "pernah") {
+      return "Pernah";
+    }
+
+    return capitalizeFirst(value);
+  };
   
   return (
   <div className="min-h-screen bg-[#e6f0fa]">
@@ -466,11 +490,7 @@ const handleDelete = async (id: string, nama: string) => {
       <div>
         <p className="text-sm text-gray-600">Riwayat Bantuan</p>
         <p className="font-medium">
-          {selectedWarga.riwayatBantuan === "belum_pernah"
-            ? "Belum Pernah"
-            : selectedWarga.riwayatBantuan === "blt"
-            ? "Sedang Menerima"
-            : "Pernah"}
+          {getRiwayatBantuanLabel(selectedWarga.riwayatBantuan)}
         </p>
       </div>
 
