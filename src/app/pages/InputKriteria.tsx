@@ -26,7 +26,6 @@ export function InputKriteria() {
   const [showResult, setShowResult] = useState(false);
   const [calculating, setCalculating] = useState(false);
 
-  // Generate pairs untuk perbandingan
   const getPairs = () => {
     const pairs = [];
     for (let i = 0; i < KRITERIA.length; i++) {
@@ -51,30 +50,24 @@ export function InputKriteria() {
   };
 
   const calculateAHP = (dataWarga: any[] = []) => {
-    // Simulasi perhitungan AHP
     const n = KRITERIA.length;
-    
-    // Create pairwise comparison matrix
     const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(1));
-    
-    // Fill matrix based on comparisons
+
     pairs.forEach(pair => {
       const [id1, id2] = pair.key.split('|');
       const i = KRITERIA.findIndex(k => k.id === id1);
       const j = KRITERIA.findIndex(k => k.id === id2);
 
-        if (i === -1 || j === -1) {
-    console.error('Index tidak ditemukan:', id1, id2);
-    return;
-  }
+      if (i === -1 || j === -1) {
+        console.error('Index tidak ditemukan:', id1, id2);
+        return;
+      }
 
       const value = perbandingan[pair.key] || 1;
-      
       matrix[i][j] = value;
       matrix[j][i] = 1 / value;
     });
 
-    // Calculate column sums
     const columnSums = Array(n).fill(0);
     for (let j = 0; j < n; j++) {
       for (let i = 0; i < n; i++) {
@@ -82,7 +75,6 @@ export function InputKriteria() {
       }
     }
 
-    // Normalize matrix
     const normalized: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
@@ -90,7 +82,6 @@ export function InputKriteria() {
       }
     }
 
-    // Calculate priority vector (weights)
     const weights = Array(n).fill(0);
     for (let i = 0; i < n; i++) {
       let sum = 0;
@@ -100,7 +91,6 @@ export function InputKriteria() {
       weights[i] = sum / n;
     }
 
-    // Calculate lambda max (for consistency)
     let lambdaMax = 0;
     for (let i = 0; i < n; i++) {
       let sum = 0;
@@ -111,18 +101,15 @@ export function InputKriteria() {
     }
     lambdaMax /= n;
 
-    // Calculate CI and CR
     const CI = (lambdaMax - n) / (n - 1);
     const RI = [0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45][n];
     const CR = CI / RI;
 
-    // Calculate nilai akhir berdasarkan data warga
     const currentWargaId = localStorage.getItem('currentWargaId');
     const warga = dataWarga.find((w: any) => w.id === currentWargaId);
 
     let nilaiAkhir = 0;
     if (warga) {
-      // Simplified scoring
       let scorePendapatan = 0;
       if (warga.pendapatan === 'sangat_miskin') scorePendapatan = 1.0;
       else if (warga.pendapatan === 'miskin') scorePendapatan = 0.9;
@@ -133,7 +120,7 @@ export function InputKriteria() {
       const scorePekerjaan = warga.statusPekerjaan === 'tidak_tetap' ? 0.8 : 0.5;
       const scoreRumah = warga.statusTinggal === 'kontrak' ? 0.8 : 0.5;
 
-      nilaiAkhir = 
+      nilaiAkhir =
         weights[0] * scorePendapatan +
         weights[1] * scoreTanggungan +
         weights[2] * scorePekerjaan +
@@ -153,9 +140,8 @@ export function InputKriteria() {
   };
 
   const handleHitung = () => {
-    // Check if all comparisons are filled
     const allFilled = pairs.every(pair => perbandingan[pair.key] !== undefined);
-    
+
     if (!allFilled) {
       alert('Mohon lengkapi semua perbandingan kriteria!');
       return;
@@ -165,7 +151,7 @@ export function InputKriteria() {
     setTimeout(async () => {
       const dataWarga = await loadAccessibleWarga();
       const result = calculateAHP(dataWarga);
-      
+
       const currentWargaId = localStorage.getItem('currentWargaId');
       if (currentWargaId) {
         await updateWargaById(currentWargaId, {
@@ -188,7 +174,7 @@ export function InputKriteria() {
   const result = showResult ? calculateAHP(JSON.parse(localStorage.getItem('dataWarga') || '[]')) : null;
 
   return (
-<div className="min-h-screen bg-[#e6f0fa]">
+    <div className="min-h-screen bg-[#e6f0fa]">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -202,12 +188,10 @@ export function InputKriteria() {
               <ArrowLeft className="w-6 h-6 text-gray-600" />
             </motion.button>
             <div className="flex-1 text-center">
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] bg-clip-text text-transparent">
-                  Input Perbandingan Kriteria
-                </h1>
-                <p className="text-sm text-gray-600">Metode Analytical Hierarchy Process (AHP)</p>
-              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-[#386fa4] via-[#6aa4d3] to-[#386fa4] bg-clip-text text-transparent">
+                Input Perbandingan Kriteria
+              </h1>
+              <p className="text-sm text-gray-600">Metode Analytical Hierarchy Process (AHP)</p>
             </div>
           </div>
         </div>
@@ -215,77 +199,91 @@ export function InputKriteria() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Info Box */}
-        <motion.div 
+
+        {/* Info Box - Petunjuk Pengisian */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 text-left group"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 text-left group mb-6"
         >
           <h3 className="font-semibold text-[#386fa4] mb-2">📚 Petunjuk Pengisian</h3>
-          <p className="text-[#386fa4] text-sm mb-3">
-            Bandingkan tingkat kepentingan setiap kriteria dengan kriteria lainnya. 
-            Gunakan skala 5 tingkat dimana:
+          <p className="text-[#386fa4] text-sm mb-4">
+            Bandingkan tingkat kepentingan setiap kriteria dengan kriteria lainnya.
+            Gunakan skala 5 tingkat:{' '}
+            <strong>1</strong> = Sangat Kurang Penting,{' '}
+            <strong>2</strong> = Kurang Penting,{' '}
+            <strong>3</strong> = Sama Penting,{' '}
+            <strong>4</strong> = Lebih Penting,{' '}
+            <strong>5</strong> = Sangat Penting.
           </p>
-<div className="text-[#386fa4] text-sm space-y-4 leading-relaxed">
 
-  <div>
-    <p className="font-semibold">📌 1. Pendapatan vs Tanggungan</p>
-    <ul className="ml-4 list-disc space-y-1">
-      <li>Jika pendapatan <strong>&lt; Rp1.500.000</strong> dan tanggungan banyak (&gt;5) → <strong>Sama Penting (3)</strong></li>
-      <li>Jika pendapatan rendah tapi tanggungan sedikit → <strong>Pendapatan Lebih Penting (4)</strong></li>
-      <li>Jika pendapatan tinggi (&gt; Rp3.500.000) tapi tanggungan banyak → <strong>Tanggungan Lebih Penting (4)</strong></li>
-    </ul>
-  </div>
+          <div className="text-[#386fa4] text-sm space-y-4 leading-relaxed">
 
-  <div>
-    <p className="font-semibold">📌 2. Pendapatan vs Pekerjaan</p>
-    <ul className="ml-4 list-disc space-y-1">
-      <li>Jika pendapatan rendah dan pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
-      <li>Jika pendapatan cukup tapi pekerjaan tidak tetap → <strong>Pekerjaan Lebih Penting (4)</strong></li>
-      <li>Jika pendapatan tinggi dan pekerjaan tetap → <strong>Kurang Penting (2)</strong></li>
-    </ul>
-  </div>
+            <div>
+              <p className="font-semibold">📌 1. Pendapatan vs Jumlah Tanggungan</p>
+              <ul className="ml-4 list-disc space-y-1 mt-1">
+                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> tanggungan &gt; 5 orang → <strong>Sama Penting (3)</strong></li>
+                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> tanggungan ≤ 2 orang → <strong>Pendapatan Lebih Penting (4)</strong></li>
+                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> tanggungan &gt; 5 orang → <strong>Tanggungan Lebih Penting (4)</strong></li>
+                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> tanggungan ≤ 2 orang → <strong>Kurang Penting (2)</strong></li>
+              </ul>
+            </div>
 
-  <div>
-    <p className="font-semibold">📌 3. Pendapatan vs Kondisi Rumah</p>
-    <ul className="ml-4 list-disc space-y-1">
-      <li>Jika pendapatan tinggi tapi rumah tidak layak → <strong>Kondisi Rumah Sangat Penting (5)</strong></li>
-      <li>Jika pendapatan rendah dan rumah tidak layak → <strong>Sama Penting (3)</strong></li>
-      <li>Jika rumah layak dan pendapatan rendah → <strong>Pendapatan Lebih Penting (4)</strong></li>
-    </ul>
-  </div>
+            <div>
+              <p className="font-semibold">📌 2. Pendapatan vs Pekerjaan</p>
+              <ul className="ml-4 list-disc space-y-1 mt-1">
+                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
+                <li>Pendapatan Rp1,5–3,5 jt <strong>dan</strong> pekerjaan tidak tetap → <strong>Pekerjaan Lebih Penting (4)</strong></li>
+                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> pekerjaan tetap → <strong>Pendapatan Lebih Penting (4)</strong></li>
+                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> pekerjaan tetap → <strong>Kurang Penting (2)</strong></li>
+              </ul>
+            </div>
 
-  <div>
-    <p className="font-semibold">📌 4. Tanggungan vs Pekerjaan</p>
-    <ul className="ml-4 list-disc space-y-1">
-      <li>Jika tanggungan banyak dan pekerjaan tetap → <strong>Tanggungan Lebih Penting (4)</strong></li>
-      <li>Jika tanggungan sedikit dan pekerjaan tidak tetap → <strong>Pekerjaan Lebih Penting (4)</strong></li>
-      <li>Jika keduanya sama-sama rendah → <strong>Sama Penting (3)</strong></li>
-    </ul>
-  </div>
+            <div>
+              <p className="font-semibold">📌 3. Pendapatan vs Kondisi Rumah</p>
+              <ul className="ml-4 list-disc space-y-1 mt-1">
+                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> rumah tidak layak/rusak → <strong>Kondisi Rumah Sangat Penting (5)</strong></li>
+                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></li>
+                <li>Pendapatan &lt; Rp1,5 jt <strong>dan</strong> rumah layak/milik sendiri → <strong>Pendapatan Lebih Penting (4)</strong></li>
+                <li>Pendapatan &gt; Rp3,5 jt <strong>dan</strong> rumah layak/milik sendiri → <strong>Kurang Penting (2)</strong></li>
+              </ul>
+            </div>
 
-  <div>
-    <p className="font-semibold">📌 5. Tanggungan vs Kondisi Rumah</p>
-    <ul className="ml-4 list-disc space-y-1">
-      <li>Jika tanggungan banyak dan rumah tidak layak → <strong>Sama Penting (3)</strong></li>
-      <li>Jika tanggungan sedikit tapi rumah buruk → <strong>Kondisi Rumah Lebih Penting (4)</strong></li>
-    </ul>
-  </div>
+            <div>
+              <p className="font-semibold">📌 4. Jumlah Tanggungan vs Pekerjaan</p>
+              <ul className="ml-4 list-disc space-y-1 mt-1">
+                <li>Tanggungan &gt; 5 orang <strong>dan</strong> pekerjaan tetap → <strong>Tanggungan Lebih Penting (4)</strong></li>
+                <li>Tanggungan ≤ 2 orang <strong>dan</strong> pekerjaan tidak tetap → <strong>Pekerjaan Lebih Penting (4)</strong></li>
+                <li>Tanggungan 3–5 orang <strong>dan</strong> pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
+                <li>Tanggungan &gt; 5 orang <strong>dan</strong> pekerjaan tidak tetap → <strong>Sama Penting (3)</strong></li>
+              </ul>
+            </div>
 
-  <div>
-    <p className="font-semibold">📌 6. Pekerjaan vs Kondisi Rumah</p>
-    <ul className="ml-4 list-disc space-y-1">
-      <li>Jika pekerjaan tidak tetap dan rumah kontrak → <strong>Sama Penting (3)</strong></li>
-      <li>Jika pekerjaan tetap tapi rumah tidak layak → <strong>Kondisi Rumah Lebih Penting (4)</strong></li>
-      <li>Jika pekerjaan tetap dan rumah layak → <strong>Kurang Penting (2)</strong></li>
-    </ul>
-  </div>
+            <div>
+              <p className="font-semibold">📌 5. Jumlah Tanggungan vs Kondisi Rumah</p>
+              <ul className="ml-4 list-disc space-y-1 mt-1">
+                <li>Tanggungan &gt; 5 orang <strong>dan</strong> rumah tidak layak/rusak → <strong>Sama Penting (3)</strong></li>
+                <li>Tanggungan ≤ 2 orang <strong>dan</strong> rumah tidak layak/rusak → <strong>Kondisi Rumah Lebih Penting (4)</strong></li>
+                <li>Tanggungan &gt; 5 orang <strong>dan</strong> rumah layak/milik sendiri → <strong>Tanggungan Lebih Penting (4)</strong></li>
+                <li>Tanggungan ≤ 2 orang <strong>dan</strong> rumah layak/milik sendiri → <strong>Kurang Penting (2)</strong></li>
+              </ul>
+            </div>
 
-</div>
+            <div>
+              <p className="font-semibold">📌 6. Pekerjaan vs Kondisi Rumah</p>
+              <ul className="ml-4 list-disc space-y-1 mt-1">
+                <li>Pekerjaan tidak tetap <strong>dan</strong> rumah kontrak/tidak layak → <strong>Sama Penting (3)</strong></li>
+                <li>Pekerjaan tetap <strong>dan</strong> rumah tidak layak/rusak → <strong>Kondisi Rumah Lebih Penting (4)</strong></li>
+                <li>Pekerjaan tidak tetap <strong>dan</strong> rumah layak/milik sendiri → <strong>Pekerjaan Lebih Penting (4)</strong></li>
+                <li>Pekerjaan tetap <strong>dan</strong> rumah layak/milik sendiri → <strong>Kurang Penting (2)</strong></li>
+              </ul>
+            </div>
+
+          </div>
         </motion.div>
 
         {/* Comparison Form */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -298,7 +296,7 @@ export function InputKriteria() {
 
           <div className="space-y-6">
             {pairs.map((pair, index) => (
-              <motion.div 
+              <motion.div
                 key={pair.key}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -388,14 +386,14 @@ export function InputKriteria() {
         {/* Results */}
         <AnimatePresence>
           {showResult && result && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="mt-8"
             >
               {/* Status Kelayakan */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`rounded-2xl shadow-xl p-8 mb-6 ${
@@ -409,7 +407,7 @@ export function InputKriteria() {
                     <p className="text-sm opacity-90 mb-2">Status Kelayakan Penerima BLT-DD</p>
                     <h2 className="text-5xl font-bold mb-3">{result.status}</h2>
                     <p className="text-lg opacity-90">
-                      Nilai Akhir: {result.nilaiAkhir.toFixed(3)} 
+                      Nilai Akhir: {result.nilaiAkhir.toFixed(3)}
                       {result.status === 'Layak' ? ' ≥ 0.60' : ' < 0.60'}
                     </p>
                   </div>
@@ -429,7 +427,7 @@ export function InputKriteria() {
                   <h3 className="font-medium text-gray-900 mb-4">Bobot Kriteria</h3>
                   <div className="space-y-3">
                     {KRITERIA.map((kriteria, index) => (
-                      <motion.div 
+                      <motion.div
                         key={kriteria.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -459,7 +457,7 @@ export function InputKriteria() {
                 <div className="border-t border-gray-200 pt-6">
                   <h3 className="font-medium text-gray-900 mb-4">Uji Konsistensi</h3>
                   <div className="grid grid-cols-3 gap-4">
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-gray-50 rounded-lg p-4"
@@ -467,7 +465,7 @@ export function InputKriteria() {
                       <p className="text-sm text-gray-600 mb-1">Consistency Index (CI)</p>
                       <p className="text-2xl font-bold text-gray-900">{result.CI.toFixed(4)}</p>
                     </motion.div>
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
@@ -476,7 +474,7 @@ export function InputKriteria() {
                       <p className="text-sm text-gray-600 mb-1">Consistency Ratio (CR)</p>
                       <p className="text-2xl font-bold text-gray-900">{result.CR.toFixed(4)}</p>
                     </motion.div>
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
@@ -490,7 +488,7 @@ export function InputKriteria() {
                   </div>
 
                   {!result.isConsistent && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="mt-4 flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg"
@@ -499,7 +497,7 @@ export function InputKriteria() {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-red-900 mb-1">Perhatian!</p>
                         <p className="text-sm text-red-700">
-                          Hasil perbandingan tidak konsisten (CR &gt; 0.1). Disarankan untuk mengulangi 
+                          Hasil perbandingan tidak konsisten (CR &gt; 0.1). Disarankan untuk mengulangi
                           proses perbandingan dengan lebih hati-hati.
                         </p>
                       </div>
