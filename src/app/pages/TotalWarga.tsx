@@ -98,19 +98,10 @@ export function TotalWarga() {
   const getPendapatanLabel = (kategori: string) => {
     const labels: any = {
       sangat_miskin: "Kurang dari Rp 1.500.000",
-<<<<<<< Updated upstream
       miskin: "Rp 1.500.000 - Rp 2.500.000",
       rentan_miskin: "Rp 2.500.000 - Rp 3.500.000",
       tidak_layak: "Lebih dari Rp 3.500.000",
     };
-
-    return labels[kategori] || kategori;
-  };
-=======
-    miskin: "Rp 1.500.000 - Rp 2.500.000",
-    rentan_miskin: "Rp 2.500.000 - Rp 3.500.000",
-    tidak_layak: "Lebih dari Rp 3.500.000",
-  };
 
     return labels[kategori] || kategori;
   };
@@ -138,7 +129,6 @@ export function TotalWarga() {
 
     return value;
   };
->>>>>>> Stashed changes
 
   const dinilaiCount = dataWarga.filter(
     (w) => w.nilaiAkhir !== null,
@@ -453,7 +443,6 @@ export function TotalWarga() {
         </motion.div>
       </main>
 
-<<<<<<< Updated upstream
       {/* Detail Modal */}
       {selectedWarga && (
         <motion.div
@@ -465,160 +454,6 @@ export function TotalWarga() {
             setSelectedWarga(null);
             setIsEditing(false);
           }}
-=======
-        {/* DATA EKONOMI */}
-        <div className="bg-blue-50 p-4 rounded-xl border">
-          <h3 className="font-bold text-lg text-[#386fa4] mb-4">
-            Data Ekonomi
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Pendapatan</p>
-              {isEditing ? (
-                <select
-                  value={editForm.pendapatan || ""}
-                  onChange={(e) => setEditForm({ ...editForm, pendapatan: e.target.value })}
-                  className="border rounded px-3 py-2 w-full"
-                >
-                  <option value="sangat_miskin">Kurang dari Rp 1.500.000</option>
-                  <option value="miskin">Rp 1.500.000 - Rp 2.500.000</option>
-                  <option value="rentan_miskin">Rp 2.500.000 - Rp 3.500.000</option>
-                  <option value="tidak_layak">Lebih dari Rp 3.500.000</option>
-                </select>
-              ) : (
-                <p className="font-medium">
-                  {getPendapatanLabel(selectedWarga.pendapatan)}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Pekerjaan</p>
-              {isEditing ? (
-                <input
-                  value={editForm.pekerjaan || ""}
-                  onChange={(e) => setEditForm({ ...editForm, pekerjaan: e.target.value })}
-                  className="border rounded px-3 py-2 w-full"
-                />
-              ) : (
-                <p className="font-medium">{selectedWarga.pekerjaan}</p>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Status Kerja</p>
-              {isEditing ? (
-                <select
-                  value={editForm.statusKerjaTetap || ""}
-                  onChange={(e) => setEditForm({ ...editForm, statusKerjaTetap: e.target.value })}
-                  className="border rounded px-3 py-2 w-full"
-                >
-                  <option value="tetap">Tetap</option>
-                  <option value="tidak_tetap">Tidak Tetap</option>
-                </select>
-              ) : (
-                <p className="font-medium">
-                  {selectedWarga.statusKerjaTetap === "tidak_tetap" ? "Tidak Tetap" : "Tetap"}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Usaha Sendiri</p>
-              {isEditing ? (
-                <select
-                  value={editForm.kepemilikanUsaha || ""}
-                  onChange={(e) => setEditForm({ ...editForm, kepemilikanUsaha: e.target.value })}
-                  className="border rounded px-3 py-2 w-full"
-                >
-                  <option value="Ya">Ya</option>
-                  <option value="Tidak">Tidak</option>
-                </select>
-              ) : (
-<p className="font-medium capitalize">{selectedWarga.kepemilikanUsaha}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* BANTUAN & ASET */}
-        <div className="bg-blue-50 p-4 rounded-xl border">
-          <h3 className="font-bold text-lg text-[#386fa4] mb-4">
-            Bantuan & Aset
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Riwayat Bantuan</p>
-              {isEditing ? (
-                <select
-                  value={editForm.riwayatBantuan || ""}
-                  onChange={(e) => setEditForm({ ...editForm, riwayatBantuan: e.target.value })}
-                  className="border rounded px-3 py-2 w-full"
-                >
-                  <option value="">Pilih Riwayat Bantuan</option>
-                  <option value="Belum_pernah">Belum Pernah</option>
-                  <option value="Blt">Sedang Menerima</option>
-                  <option value="Pernah">Pernah</option>
-                </select>
-              ) : (
-                <p className="font-medium">
-                  {getRiwayatBantuanLabel(selectedWarga.riwayatBantuan)}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Kepemilikan Aset</p>
-              {isEditing ? (
-                <select
-                  value={editForm.kepemilikanAset || ""}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      kepemilikanAset: e.target.value,
-                    })
-                  }
-                  className="border rounded px-3 py-2 w-full"
-                >
-                  <option value="tidak_ada">Tidak Ada</option>
-                  <option value="kendaraan">Kendaraan</option>
-                  <option value="tanah_bangunan">Tanah/Bangunan</option>
-                  <option value="lainnya">Lainnya</option>
-                </select>
-              ) : (
-                <p className="font-medium">
-                  {selectedWarga.kepemilikanAset === "tidak_ada"
-                    ? "Tidak Ada"
-                    : selectedWarga.kepemilikanAset === "kendaraan"
-                    ? "Kendaraan"
-                    : selectedWarga.kepemilikanAset === "tanah_bangunan"
-                    ? "Tanah/Bangunan"
-                    : selectedWarga.kepemilikanAset === "lainnya"
-                    ? "Lainnya"
-                    : "Tidak Ada"}
-                </p>
-              )}
-            </div>
-          </div>
-
-{selectedWarga.kepemilikanAset &&
- selectedWarga.kepemilikanAset !== "tidak_ada" &&
- Array.isArray(
-   editForm.fotoAset?.length
-     ? editForm.fotoAset
-     : selectedWarga.fotoAset
- ) &&
- (
-   (editForm.fotoAset?.length || selectedWarga.fotoAset?.length || 0) > 0
- ) && (
-  <div className="mt-4">
-    <p className="text-sm text-gray-600 mb-2">Foto Aset</p>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {(editForm.fotoAset?.length
-        ? editForm.fotoAset
-        : selectedWarga.fotoAset
-      )?.map((foto, index) => (
-        <div
-          key={index}
-          className="relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
->>>>>>> Stashed changes
         >
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
