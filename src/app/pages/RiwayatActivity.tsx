@@ -15,7 +15,10 @@ import {
   getActivities,
   formatTimestamp,
   ActivityLog,
-  logActivity
+  logActivity,
+  deleteActivityById,
+  clearActivities,
+  resetLegacyPerangkatHistoryOnce
 } from '../utils/activityLogger';
 import { deleteWargaById } from '../utils/wargaData';
 
@@ -29,6 +32,7 @@ export function RiwayatActivity() {
   >('all');
 
   useEffect(() => {
+    resetLegacyPerangkatHistoryOnce();
     loadActivities();
   }, [filter]);
 
@@ -49,18 +53,7 @@ export function RiwayatActivity() {
 
     if (!confirmDelete) return;
 
-    const allActivities = JSON.parse(
-localStorage.getItem('activityLogs') || '[]'
-    );
-
-    const updatedActivities = allActivities.filter(
-      (activity: ActivityLog) => activity.id !== id
-    );
-
-localStorage.setItem(
-  'activityLogs',
-      JSON.stringify(updatedActivities)
-    );
+    deleteActivityById(id);
 
     loadActivities();
   };
@@ -216,7 +209,7 @@ const handleKirimWarga = (nama: string) => {
       const confirmDelete = window.confirm('Yakin ingin menghapus semua riwayat?');
       if (!confirmDelete) return;
 
-      localStorage.removeItem('activityLogs');
+      clearActivities();
       loadActivities();
     }}
     className="group relative p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"

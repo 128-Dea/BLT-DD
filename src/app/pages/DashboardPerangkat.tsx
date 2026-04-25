@@ -14,7 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { getWeeklyActivity, getMonthlyTrend } from '../utils/activityLogger';
+import { getWeeklyActivity, getMonthlyTrend, resetLegacyPerangkatHistoryOnce } from '../utils/activityLogger';
 import { logoutFromFirebase } from '../utils/auth';
 import { loadAccessibleWarga } from '../utils/wargaData';
 
@@ -32,6 +32,7 @@ export function DashboardPerangkat() {
   const [monthlyData, setMonthlyData] = useState<{ bulan: string; penilaian: number; disetujui: number }[]>([]);
 
 useEffect(() => {
+  resetLegacyPerangkatHistoryOnce();
   fetchData();
   loadChartData();
 }, []);

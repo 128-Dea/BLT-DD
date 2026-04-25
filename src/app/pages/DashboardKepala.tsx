@@ -45,9 +45,9 @@ interface PenilaianData {
   pendapatan?: string;
   pekerjaan?: string;
   tanggal: string;
-  nilaiAkhir?: number | null;
-  status?: "Layak" | "Tidak Layak";
-  statusApproval?: "Pending" | "Disetujui" | "Ditolak";
+  nilaiAkhir: number;
+  status: "Layak" | "Tidak Layak";
+  statusApproval: "Pending" | "Disetujui" | "Ditolak";
   terkirim?: boolean;
 
   fotoRumah?: string;
@@ -190,10 +190,46 @@ const loadData = async () => {
   const [selectedWarga, setSelectedWarga] =
     useState<PenilaianData | null>(null);
 
+  const validStatusApproval = (
+    status: any
+  ): "Pending" | "Disetujui" | "Ditolak" => {
+    if (status === "Pending" || status === "Disetujui" || status === "Ditolak") {
+      return status;
+    }
+    return "Pending";
+  };
+
   const getDetailWarga = (id: string): PenilaianData | null => {
     const allData = getAllStoredWarga();
+    const warga = allData.find((w: any) => w.id === id);
 
-    return (allData.find((w: any) => w.id === id) as PenilaianData | undefined) || null;
+    if (!warga) return null;
+
+    return {
+      id: warga.id,
+      nik: warga.nik || "",
+      nama: warga.nama || "",
+      alamat: warga.alamat || "",
+      jumlahAnggota: warga.jumlahAnggota,
+      jumlahTanggungan: warga.jumlahTanggungan,
+      pendapatan: warga.pendapatan,
+      pekerjaan: warga.pekerjaan,
+      tanggal: warga.tanggal || "",
+      nilaiAkhir: warga.nilaiAkhir ?? 0,
+      status: warga.status || "Tidak Layak",
+      statusApproval: validStatusApproval(warga.statusApproval),
+      terkirim: warga.terkirim,
+
+      fotoRumah: warga.fotoRumah,
+      statusKK: warga.statusKK,
+      statusTinggal: warga.statusTinggal,
+      sumberAir: warga.sumberAir,
+      statusPekerjaan: warga.statusPekerjaan,
+      kepemilikanUsaha: warga.kepemilikanUsaha,
+      riwayatBantuan: warga.riwayatBantuan,
+      kepemilikanAset: warga.kepemilikanAset,
+      fotoAset: warga.fotoAset,
+    };
   };
 
   const getPendapatanLabel = (kategori: string) => {
@@ -511,7 +547,7 @@ const loadData = async () => {
             : "bg-red-100 text-red-700"
         }`}
       >
-        {item.status || "Tidak Layak"}
+        {item.status}
       </span>
     </div>
 
@@ -524,7 +560,7 @@ const loadData = async () => {
       <div>
         <p className="text-gray-600 mb-1">Nilai Akhir</p>
         <p className="font-medium">
-          {item.nilaiAkhir?.toFixed(2) || "0.00"}
+          {item.nilaiAkhir.toFixed(2)}
         </p>
       </div>
 
