@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Users, Edit, Trash2, Calculator, Eye } from 'lucide-react';
 import { logActivity } from '../utils/activityLogger';
+import { deleteWargaById, loadAccessibleWarga } from '../utils/wargaData';
 
 interface WargaData {
   id: string;
@@ -36,26 +37,42 @@ export function DataWarga() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    // Filter hanya data yang belum dihitung
-    const unprocessedData = data.filter((w: WargaData) => w.nilaiAkhir === null);
-    setDataWarga(unprocessedData);
-  };
+const loadData = async () => {
+  const data = await loadAccessibleWarga();
 
-const handleDelete = (id: string, nama: string) => {
+  const mappedData: WargaData[] = data.map((w: any) => ({
+    id: w.id,
+    nik: w.nik ?? '',
+    nama: w.nama ?? '',
+    alamat: w.alamat ?? '',
+    jumlahAnggota: w.jumlahAnggota ?? '',
+    jumlahTanggungan: w.jumlahTanggungan ?? '',
+    pendapatan: w.pendapatan ?? '',
+    pekerjaan: w.pekerjaan ?? '',
+    tanggal: w.tanggal ?? '',
+    nilaiAkhir: w.nilaiAkhir ?? null,
+    fotoRumah: w.fotoRumah,
+    statusKK: w.statusKK,
+    statusTinggal: w.statusTinggal,
+    sumberAir: w.sumberAir,
+    statusPekerjaan: w.statusPekerjaan,
+    kepemilikanUsaha: w.kepemilikanUsaha,
+    riwayatBantuan: w.riwayatBantuan,
+    kepemilikanAset: w.kepemilikanAset,
+    aset: w.aset,
+    fotoAset: w.fotoAset,
+  }));
+
+  const unprocessedData = mappedData.filter(
+    (w) => w.nilaiAkhir === null
+  );
+
+  setDataWarga(unprocessedData);
+};
+
+const handleDelete = async (id: string, nama: string) => {
   if (confirm(`Hapus data warga ${nama}?`)) {
-
-    const allData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-
-    const updatedData = allData.filter(
-      (w: WargaData) => w.id !== id
-    );
-
-    localStorage.setItem(
-      'dataWarga',
-      JSON.stringify(updatedData)
-    );
+    await deleteWargaById(id);
 
     // TAMBAHAN WAJIB BIAR MASUK RIWAYAT
     logActivity(

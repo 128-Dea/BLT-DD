@@ -17,6 +17,7 @@ import {
   ActivityLog,
   logActivity
 } from '../utils/activityLogger';
+import { deleteWargaById } from '../utils/wargaData';
 
 export function RiwayatActivity() {
   const navigate = useNavigate();
@@ -65,25 +66,14 @@ localStorage.setItem(
   };
 
 // HAPUS DATA WARGA + MASUK HISTORI
-const handleDeleteWarga = (id: string, nama: string) => {
+const handleDeleteWarga = async (id: string, nama: string) => {
   const confirmDelete = window.confirm(
     `Yakin ingin menghapus data ${nama}?`
   );
 
   if (!confirmDelete) return;
 
-  const dataWarga = JSON.parse(
-    localStorage.getItem('dataWarga') || '[]'
-  );
-
-  const updatedData = dataWarga.filter(
-    (item: any) => item.id !== id
-  );
-
-  localStorage.setItem(
-    'dataWarga',
-    JSON.stringify(updatedData)
-  );
+  await deleteWargaById(id);
 
   logActivity(
     'hapus',

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, History as HistoryIcon, Search, Trash2, Eye, X } from 'lucide-react';
 import { RiwayatActivity } from './RiwayatActivity'; 
+import { deleteWargaById, loadAccessibleWarga } from '../utils/wargaData';
 
 interface RiwayatData {
   id: string;
@@ -39,10 +40,29 @@ export function Riwayat() {
     }
   }, []);
 
-  const loadData = () => {
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    const filteredData = data.filter((w: RiwayatData) => w.terkirim && w.nilaiAkhir !== null);
-    setRiwayatData(filteredData);
+  const loadData = async () => {
+    const data = await loadAccessibleWarga();
+
+    const mapped: RiwayatData[] = data
+      .filter((w: any) => w.terkirim && w.nilaiAkhir !== null)
+      .map((w: any) => ({
+        id: w.id,
+        nik: w.nik || "",
+        nama: w.nama || "",
+        alamat: w.alamat || "",
+        jumlahAnggota: Number(w.jumlahAnggota || 0),
+        jumlahTanggungan: Number(w.jumlahTanggungan || 0),
+        pendapatan: w.pendapatan || "",
+        pekerjaan: w.pekerjaan || "",
+        nilaiAkhir: w.nilaiAkhir || 0,
+        status: w.status || "Tidak Layak",
+        statusApproval: w.statusApproval || "Pending",
+        tanggal: w.tanggal || "",
+        bobotKriteria: w.bobotKriteria || [],
+        terkirim: w.terkirim || false,
+      }));
+
+    setRiwayatData(mapped);
   };
 
   // 🔥 FIX: LOG PER USER
@@ -67,7 +87,7 @@ export function Riwayat() {
     item.nik.includes(searchTerm)
   );
 
-  const handleHapus = (id: string, nama: string) => {
+  const handleHapus = async (id: string, nama: string) => {
     const item = riwayatData.find(r => r.id === id);
 
     if (item?.statusApproval === 'Disetujui') {
@@ -76,9 +96,7 @@ export function Riwayat() {
     }
 
     if (confirm(`Hapus riwayat penilaian untuk ${nama}?`)) {
-      const allData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-      const updatedData = allData.filter((w: RiwayatData) => w.id !== id);
-      localStorage.setItem('dataWarga', JSON.stringify(updatedData));
+      await deleteWargaById(id);
 
       // 🔥 LOG PER USER
       saveActivity('hapus', `Menghapus data ${nama}`);

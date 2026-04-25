@@ -16,6 +16,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { getWeeklyActivity, getMonthlyTrend } from '../utils/activityLogger';
 import { logoutFromFirebase } from '../utils/auth';
+import { loadAccessibleWarga } from '../utils/wargaData';
 
 export function DashboardPerangkat() {
   const navigate = useNavigate();
@@ -43,20 +44,19 @@ useEffect(() => {
   };
 
 const fetchData = () => {
-  fetch("http://127.0.0.1:8000/api/warga/")
-    .then(res => res.json())
-    .then(data => {
-      console.log("Data backend:", data);
-
+  loadAccessibleWarga()
+    .then((data) => {
       const totalWarga = data.length;
-      const penilaianSelesai = data.filter((w: any) => w.nilai_akhir !== null).length;
+      const penilaianSelesai = data.filter((w: any) => w.nilaiAkhir !== null).length;
 
       const menungguApproval = data.filter((w: any) =>
-        w.status_approval === "Pending"
+        w.terkirim === true &&
+        w.nilaiAkhir !== null &&
+        (w.statusApproval === "Pending" || !w.statusApproval)
       ).length;
 
       const disetujuiBulanIni = data.filter((w: any) =>
-        w.status_approval === "Disetujui"
+        w.statusApproval === "Disetujui"
       ).length;
 
       const layak = data.filter((w: any) =>

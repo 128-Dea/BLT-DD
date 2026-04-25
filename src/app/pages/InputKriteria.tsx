@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Calculator, AlertCircle, CheckCircle, TrendingDown } from 'lucide-react';
 import { logActivity } from '../utils/activityLogger';
+import { loadAccessibleWarga, updateWargaById } from '../utils/wargaData';
 
 const KRITERIA = [
   { id: 'pendapatan', nama: 'Pendapatan' },
@@ -49,7 +50,7 @@ export function InputKriteria() {
     });
   };
 
-  const calculateAHP = () => {
+  const calculateAHP = (dataWarga: any[] = []) => {
     // Simulasi perhitungan AHP
     const n = KRITERIA.length;
     
@@ -117,7 +118,6 @@ export function InputKriteria() {
 
     // Calculate nilai akhir berdasarkan data warga
     const currentWargaId = localStorage.getItem('currentWargaId');
-    const dataWarga = JSON.parse(localStorage.getItem('dataWarga') || '[]');
     const warga = dataWarga.find((w: any) => w.id === currentWargaId);
 
     let nilaiAkhir = 0;
@@ -162,25 +162,19 @@ export function InputKriteria() {
     }
 
     setCalculating(true);
-    setTimeout(() => {
-      const result = calculateAHP();
+    setTimeout(async () => {
+      const dataWarga = await loadAccessibleWarga();
+      const result = calculateAHP(dataWarga);
       
-      // Simpan hasil ke data warga
       const currentWargaId = localStorage.getItem('currentWargaId');
-      const dataWarga = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-      const updatedData = dataWarga.map((w: any) => {
-        if (w.id === currentWargaId) {
-          return {
-            ...w,
-            nilaiAkhir: result.nilaiAkhir,
-            status: result.status,
-            statusApproval: 'Pending',
-            bobotKriteria: result.weights
-          };
-        }
-        return w;
-      });
-      localStorage.setItem('dataWarga', JSON.stringify(updatedData));
+      if (currentWargaId) {
+        await updateWargaById(currentWargaId, {
+          nilaiAkhir: result.nilaiAkhir,
+          status: result.status,
+          statusApproval: 'Pending',
+          bobotKriteria: result.weights
+        });
+      }
 
       setCalculating(false);
       setShowResult(true);
@@ -191,7 +185,7 @@ export function InputKriteria() {
     navigate('/hasil-penilaian');
   };
 
-  const result = showResult ? calculateAHP() : null;
+  const result = showResult ? calculateAHP(JSON.parse(localStorage.getItem('dataWarga') || '[]')) : null;
 
   return (
 <div className="min-h-screen bg-[#e6f0fa]">

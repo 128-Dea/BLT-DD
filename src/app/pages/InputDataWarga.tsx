@@ -7,6 +7,7 @@ import { FirebaseError } from 'firebase/app';
 import { collection, addDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { restoreCurrentUser } from '../utils/auth';
+import { appendStoredWarga, getCurrentAppUser } from '../utils/wargaData';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -88,12 +89,6 @@ export function InputDataWarga() {
     return result as { foto_rumah: string; foto_aset: string[] };
   };
 
-  const saveToLocalStorage = (data: Record<string, unknown>) => {
-    const existingData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    existingData.unshift(data);
-    localStorage.setItem('dataWarga', JSON.stringify(existingData));
-  };
-
   const isFirestorePermissionError = (error: unknown) => {
     return (
       error instanceof FirebaseError &&
@@ -164,6 +159,13 @@ export function InputDataWarga() {
     }
 
     try {
+      const currentUser = getCurrentAppUser();
+
+      if (!currentUser?.uid) {
+        alert('Sesi login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+
       const uploadedMedia = await uploadMedia();
       const tanggal = new Date().toLocaleString('id-ID');
       const newData = {
@@ -188,6 +190,10 @@ export function InputDataWarga() {
         fotoAset: uploadedMedia.foto_aset,
         tanggal,
         createdAt: new Date().toISOString(),
+        ownerUid: currentUser.uid,
+        ownerEmail: currentUser.email,
+        ownerName: currentUser.nama,
+        ownerRole: currentUser.role,
         status: null,
         nilaiAkhir: null,
         statusApproval: 'Pending'
@@ -209,7 +215,7 @@ export function InputDataWarga() {
         }
       }
 
-      saveToLocalStorage({
+      appendStoredWarga({
         id: savedId,
         ...newData,
         firebaseSyncStatus: syncStatus,

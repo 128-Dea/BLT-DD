@@ -28,6 +28,12 @@ import {
   Cell,
 } from "recharts";
 import { logoutFromFirebase } from "../utils/auth";
+import {
+  getAllStoredWarga,
+  loadAccessibleWarga,
+  saveAllStoredWarga,
+  updateWargaById,
+} from "../utils/wargaData";
 
 interface PenilaianData {
   id: string;
@@ -39,9 +45,9 @@ interface PenilaianData {
   pendapatan?: string;
   pekerjaan?: string;
   tanggal: string;
-  nilaiAkhir: number;
-  status: "Layak" | "Tidak Layak";
-  statusApproval: "Pending" | "Disetujui" | "Ditolak";
+  nilaiAkhir?: number | null;
+  status?: "Layak" | "Tidak Layak";
+  statusApproval?: "Pending" | "Disetujui" | "Ditolak";
   terkirim?: boolean;
 
   fotoRumah?: string;
@@ -68,10 +74,8 @@ useEffect(() => {
   loadData();
 }, []);
 
-const loadData = () => {
-  const storedData = JSON.parse(
-    localStorage.getItem("dataWarga") || "[]"
-  );
+const loadData = async () => {
+  const storedData = await loadAccessibleWarga();
 
   if (!Array.isArray(storedData)) {
     console.error("Data warga di localStorage bukan array:", storedData);
@@ -84,11 +88,11 @@ const loadData = () => {
     ...item,
     statusApproval: item.statusApproval || "Pending",
   }));
-
-  // Simpan ulang ke localStorage agar permanen
-  localStorage.setItem(
-    "dataWarga",
-    JSON.stringify(normalizedData)
+  saveAllStoredWarga(
+    getAllStoredWarga().map((item) => ({
+      ...item,
+      statusApproval: item.statusApproval || "Pending",
+    }))
   );
 
   const filteredData = normalizedData.filter(
@@ -119,7 +123,7 @@ const loadData = () => {
     }
   };
 
-  const handleApprove = (id: string, approve: boolean) => {
+  const handleApprove = async (id: string, approve: boolean) => {
     const warga = dataWarga.find((w) => w.id === id);
     if (!warga) return;
 
@@ -130,24 +134,10 @@ const loadData = () => {
       )
     ) {
       // Update data
-      const allData = JSON.parse(
-        localStorage.getItem("dataWarga") || "[]",
-      );
-      const updatedData = allData.map((w: PenilaianData) => {
-        if (w.id === id) {
-          return {
-            ...w,
-            statusApproval: approve ? "Disetujui" : "Ditolak",
-          };
-        }
-        return w;
+      await updateWargaById(id, {
+        statusApproval: approve ? "Disetujui" : "Ditolak",
       });
-
-      localStorage.setItem(
-        "dataWarga",
-        JSON.stringify(updatedData),
-      );
-      loadData();
+      await loadData();
 
       alert(
         `✓ Penilaian berhasil ${approve ? "disetujui" : "ditolak"}!`,
@@ -200,12 +190,10 @@ const loadData = () => {
   const [selectedWarga, setSelectedWarga] =
     useState<PenilaianData | null>(null);
 
-  const getDetailWarga = (id: string) => {
-    const allData = JSON.parse(
-      localStorage.getItem("dataWarga") || "[]"
-    );
-  
-    return allData.find((w: any) => w.id === id);
+  const getDetailWarga = (id: string): PenilaianData | null => {
+    const allData = getAllStoredWarga();
+
+    return (allData.find((w: any) => w.id === id) as PenilaianData | undefined) || null;
   };
 
   const getPendapatanLabel = (kategori: string) => {
@@ -523,7 +511,7 @@ const loadData = () => {
             : "bg-red-100 text-red-700"
         }`}
       >
-        {item.status}
+        {item.status || "Tidak Layak"}
       </span>
     </div>
 
@@ -536,7 +524,7 @@ const loadData = () => {
       <div>
         <p className="text-gray-600 mb-1">Nilai Akhir</p>
         <p className="font-medium">
-          {item.nilaiAkhir.toFixed(2)}
+          {item.nilaiAkhir?.toFixed(2) || "0.00"}
         </p>
       </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, Clock, Eye, UserCheck, XCircle } from 'lucide-react';
+import { loadAccessibleWarga } from '../utils/wargaData';
 
 interface WargaData {
   id: string;
@@ -29,15 +30,32 @@ export function MenungguApproval() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    // Data yang terkirim ke kepala desa tapi belum di-approve atau reject
-    const pendingData = data.filter(
-      (w: WargaData) => 
-        w.terkirim && 
-        w.nilaiAkhir !== null && 
+  const loadData = async () => {
+    const data = await loadAccessibleWarga();
+
+    const pendingData: WargaData[] = data
+      .filter((w: any) =>
+        w.terkirim &&
+        w.nilaiAkhir !== null &&
         (w.statusApproval === 'Pending' || !w.statusApproval)
-    );
+      )
+      .map((w: any) => ({
+        id: w.id,
+        nik: w.nik || "",
+        nama: w.nama || "",
+        alamat: w.alamat || "",
+        jumlahAnggota: Number(w.jumlahAnggota || 0),
+        jumlahTanggungan: Number(w.jumlahTanggungan || 0),
+        pendapatan: w.pendapatan || "",
+        pekerjaan: w.pekerjaan || "",
+        tanggal: w.tanggal || "",
+        nilaiAkhir: w.nilaiAkhir || 0,
+        status: w.status || "Tidak Layak",
+        statusApproval: w.statusApproval || "Pending",
+        terkirim: w.terkirim || false,
+        bobotKriteria: w.bobotKriteria || []
+      }));
+
     setDataWarga(pendingData);
   };
 

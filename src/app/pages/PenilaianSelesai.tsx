@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
-import { ArrowLeft, Calculator, Eye, Clock, UserCheck, Check, X } from 'lucide-react';
+import { ArrowLeft, Calculator, Eye, UserCheck, Check, X } from 'lucide-react';
+import { loadAccessibleWarga } from '../utils/wargaData';
 
 interface WargaData {
   id: string;
@@ -13,8 +14,8 @@ interface WargaData {
   pendapatan: string;
   pekerjaan: string;
   tanggal: string;
-  nilaiAkhir: number;
-  status: 'Layak' | 'Tidak Layak';
+  nilaiAkhir: number | null;
+  status?: 'Layak' | 'Tidak Layak';
   statusApproval?: 'Pending' | 'Disetujui' | 'Ditolak';
   bobotKriteria?: number[];
 }
@@ -28,35 +29,40 @@ export function PenilaianSelesai() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    // Semua data yang sudah dinilai (disetujui atau belum)
-    const nilaiData = data.filter((w: WargaData) => w.nilaiAkhir !== null);
+  const loadData = async () => {
+    const data = await loadAccessibleWarga();
+
+    const mappedData: WargaData[] = data.map((w: any) => ({
+      id: w.id,
+      nik: w.nik || "",
+      nama: w.nama || "",
+      alamat: w.alamat || "",
+      jumlahAnggota: w.jumlahAnggota || 0,
+      jumlahTanggungan: w.jumlahTanggungan || 0,
+      pendapatan: w.pendapatan || "",
+      pekerjaan: w.pekerjaan || "",
+      tanggal: w.tanggal || "",
+      nilaiAkhir: w.nilaiAkhir ?? null,
+      status: w.status || "Tidak Layak",
+      statusApproval: w.statusApproval || "Pending",
+    }));
+
+    const nilaiData = mappedData.filter(w => w.nilaiAkhir !== null);
+
     setDataWarga(nilaiData);
   };
 
-  const getPendapatanLabel = (kategori: string) => {
-    const labels: any = {
-      'sangat_miskin': 'Sangat Miskin',
-      'miskin': 'Miskin',
-      'rentan_miskin': 'Rentan Miskin',
-      'tidak_layak': 'Tidak Layak'
-    };
-    return labels[kategori] || kategori;
-  };
+  const layakCount = dataWarga.filter((w) => w.status === 'Layak').length;
+  const tidakLayakCount = dataWarga.filter((w) => w.status === 'Tidak Layak').length;
+  const disetujuiCount = dataWarga.filter((w) => w.statusApproval === 'Disetujui').length;
 
-  const layakCount = dataWarga.filter(w => w.status === 'Layak').length;
-  const tidakLayakCount = dataWarga.filter(w => w.status === 'Tidak Layak').length;
-  const disetujuiCount = dataWarga.filter(w => w.statusApproval === 'Disetujui').length;
-  const pendingCount = dataWarga.filter(w => w.statusApproval === 'Pending' || !w.statusApproval).length;
   const capitalizeFirst = (text: string) => {
-  if (!text) return "";
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
+    if (!text) return "";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
 
   return (
     <div className="min-h-screen bg-[#e6f0fa]">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center space-x-4">
@@ -80,9 +86,7 @@ export function PenilaianSelesai() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -112,7 +116,7 @@ export function PenilaianSelesai() {
                 <p className="text-3xl font-bold text-blue-600">{layakCount}</p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
-               <UserCheck className="w-6 h-6 text-white" />
+                <UserCheck className="w-6 h-6 text-white" />
               </div>
             </div>
           </motion.div>
@@ -152,7 +156,6 @@ export function PenilaianSelesai() {
           </motion.div>
         </div>
 
-        {/* Data Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -160,7 +163,7 @@ export function PenilaianSelesai() {
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-             <Calculator className="w-6 h-6 text-[#386fa4]" />
+              <Calculator className="w-6 h-6 text-[#386fa4]" />
               <h2 className="text-xl font-semibold text-gray-900">
                 Daftar Penilaian ({dataWarga.length})
               </h2>
@@ -209,19 +212,17 @@ export function PenilaianSelesai() {
                       transition={{ delay: index * 0.05 }}
                       className="hover:bg-blue-50 transition"
                     >
-                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
-                      {warga.tanggal}
-                    </td>
-                    
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
-                      {warga.nik}
-                    </td>
-                    
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
-                      {capitalizeFirst(warga.nama)}
-                    </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                        {warga.tanggal}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                        {warga.nik}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                        {capitalizeFirst(warga.nama)}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold text-gray-900">
-                        {warga.nilaiAkhir.toFixed(2)}
+                        {warga.nilaiAkhir?.toFixed(2) || '0.00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span
@@ -231,7 +232,7 @@ export function PenilaianSelesai() {
                               : 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {warga.status}
+                          {warga.status || 'Tidak Layak'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -267,7 +268,6 @@ export function PenilaianSelesai() {
         </motion.div>
       </main>
 
-      {/* Detail Modal */}
       {selectedWarga && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -284,25 +284,20 @@ export function PenilaianSelesai() {
             className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
           >
             <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-2xl flex items-center justify-center relative">
-              
-              {/* Judul*/}
               <div className="text-center">
                 <h2 className="text-2xl font-bold mb-1">Detail Penilaian</h2>
                 <p className="text-blue-100">{selectedWarga.nama}</p>
               </div>
-            
-              {/* Tombol close (KANAN ABSOLUTE) */}
+
               <button
                 onClick={() => setSelectedWarga(null)}
                 className="absolute right-6 p-2 hover:bg-white/20 rounded-lg transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
-            
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Data Identitas */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Identitas</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -321,13 +316,12 @@ export function PenilaianSelesai() {
                 </div>
               </div>
 
-              {/* Hasil Penilaian */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Hasil Penilaian</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-blue-50 rounded-lg p-4 text-center">
                     <p className="text-sm text-gray-600 mb-1">Nilai Akhir</p>
-                    <p className="text-3xl font-bold text-blue-600">{selectedWarga.nilaiAkhir.toFixed(2)}</p>
+                    <p className="text-3xl font-bold text-blue-600">{selectedWarga.nilaiAkhir?.toFixed(2) || '0.00'}</p>
                   </div>
                   <div className={`rounded-lg p-4 text-center ${
                     selectedWarga.status === 'Layak' ? 'bg-blue-50' : 'bg-gray-50'
@@ -336,7 +330,7 @@ export function PenilaianSelesai() {
                     <p className={`text-2xl font-bold ${
                       selectedWarga.status === 'Layak' ? 'text-blue-600' : 'text-gray-600'
                     }`}>
-                      {selectedWarga.status}
+                      {selectedWarga.status || 'Tidak Layak'}
                     </p>
                   </div>
                   <div className={`rounded-lg p-4 text-center ${

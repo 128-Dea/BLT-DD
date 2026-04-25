@@ -12,6 +12,11 @@ import {
   Save,
 } from "lucide-react";
 import { logActivity } from "../utils/activityLogger";
+import {
+  deleteWargaById,
+  loadAccessibleWarga,
+  updateWargaById,
+} from "../utils/wargaData";
 
 interface WargaData {
   id: string;
@@ -55,12 +60,39 @@ export function TotalWarga() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const data = JSON.parse(
-      localStorage.getItem("dataWarga") || "[]",
-    );
-    // Semua data warga (sudah dinilai atau belum)
-    setDataWarga(data);
+  const loadData = async () => {
+    const data = await loadAccessibleWarga();
+
+    const mappedData: WargaData[] = data.map((w: any) => ({
+      id: w.id,
+      nik: w.nik || "",
+      nama: w.nama || "",
+      alamat: w.alamat || "",
+      jumlahAnggota: w.jumlahAnggota || 0,
+      jumlahTanggungan: w.jumlahTanggungan || 0,
+      pendapatan: w.pendapatan || "",
+      pekerjaan: w.pekerjaan || "",
+      tanggal: w.tanggal || "",
+      nilaiAkhir: w.nilaiAkhir ?? null,
+
+      status: w.status ?? null,
+      statusApproval: w.statusApproval ?? "Pending",
+
+      statusKK: w.statusKK,
+      statusTinggal: w.statusTinggal,
+      kondisiRumah: w.kondisiRumah,
+      sumberAir: w.sumberAir,
+      kepemilikanUsaha: w.kepemilikanUsaha,
+      statusKerjaTetap: w.statusKerjaTetap,
+      kepemilikanAset: w.kepemilikanAset,
+      riwayatBantuan: w.riwayatBantuan,
+
+      fotoRumah: w.fotoRumah,
+      jenisAset: w.jenisAset,
+      fotoAset: w.fotoAset || [],
+    }));
+
+    setDataWarga(mappedData);
   };
 
 const getPendapatanLabel = (kategori: string) => {
@@ -81,43 +113,34 @@ const getPendapatanLabel = (kategori: string) => {
     (w) => w.nilaiAkhir === null,
   ).length;
 
-  const handleDelete = (id: string, nama: string) => {
+  const handleDelete = async (id: string, nama: string) => {
     const confirmDelete = window.confirm(
       `Yakin ingin menghapus data ${nama}?`,
     );
 
     if (!confirmDelete) return;
 
-    const data = JSON.parse(
-      localStorage.getItem("dataWarga") || "[]",
-    );
-
-    const updated = data.filter((item: any) => item.id !== id);
-
-    localStorage.setItem("dataWarga", JSON.stringify(updated));
+    await deleteWargaById(id);
 
     // MASUKKAN KE RIWAYAT
     logActivity("hapus", nama, `Menghapus data warga ${nama}`);
+
+    await loadData();
+    setSelectedWarga(null);
 
     alert("Data berhasil dihapus!");
   };
 
 
-  const handleSaveEdit = () => {
-  const allData = JSON.parse(
-    localStorage.getItem("dataWarga") || "[]"
-  );
+  const handleSaveEdit = async () => {
+  if (!selectedWarga) {
+    return;
+  }
 
-  const updatedData = allData.map((item: WargaData) =>
-    item.id === selectedWarga?.id
-      ? { ...item, ...editForm, nik: item.nik }
-      : item
-  );
-
-  localStorage.setItem(
-    "dataWarga",
-    JSON.stringify(updatedData)
-  );
+  await updateWargaById(selectedWarga.id, {
+    ...editForm,
+    nik: selectedWarga.nik,
+  });
 
   logActivity(
     "edit",
@@ -132,7 +155,7 @@ const getPendapatanLabel = (kategori: string) => {
 
   setIsEditing(false);
 
-  loadData();
+  await loadData();
 
   alert("Data berhasil diperbarui!");
 };

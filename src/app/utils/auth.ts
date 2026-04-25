@@ -33,12 +33,19 @@ const getUserCreatedAt = (
   fallbackCreatedAt?: string,
   firebaseCreationTime?: string | null
 ) => {
-  if (typeof source?.createdAt?.toDate === 'function') {
-    return source.createdAt.toDate().toISOString();
+  const createdAt = source?.createdAt;
+
+  if (
+    createdAt &&
+    typeof createdAt === 'object' &&
+    'toDate' in createdAt &&
+    typeof (createdAt as any).toDate === 'function'
+  ) {
+    return (createdAt as any).toDate().toISOString();
   }
 
-  if (typeof source?.createdAt === 'string') {
-    return source.createdAt;
+  if (typeof createdAt === 'string') {
+    return createdAt;
   }
 
   return fallbackCreatedAt || firebaseCreationTime || undefined;

@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, CheckCircle, XCircle, Printer, RotateCcw, Send, Eye, Check } from 'lucide-react';
 import { logActivity } from '../utils/activityLogger';
+import {
+  deleteWargaById,
+  loadAccessibleWarga,
+  updateWargaById,
+} from '../utils/wargaData';
 
 interface WargaData {
   id: string;
@@ -28,18 +33,44 @@ export function HasilPenilaian() {
   const threshold = 0.60;
 
   useEffect(() => {
-    // Load data from localStorage
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    // Filter only warga yang sudah dinilai
-    const nilaiData = data.filter((w: WargaData) => w.nilaiAkhir !== null);
+    const loadData = async () => {
+    const data = await loadAccessibleWarga();
+
+    const mapped: WargaData[] = data.map((w: any) => ({
+      id: w.id,
+      nik: w.nik || "",
+      nama: w.nama || "",
+      alamat: w.alamat || "",
+      jumlahAnggota: Number(w.jumlahAnggota || 0),
+      jumlahTanggungan: Number(w.jumlahTanggungan || 0),
+      pendapatan: w.pendapatan || "",
+      pekerjaan: w.pekerjaan || "",
+      nilaiAkhir: w.nilaiAkhir ?? null,
+      status: w.status ?? null,
+      statusApproval: w.statusApproval,
+      tanggal: w.tanggal || "",
+      bobotKriteria: w.bobotKriteria || [],
+      terkirim: w.terkirim || false,
+    }));
+
+    const nilaiData = mapped.filter(w => w.nilaiAkhir !== null);
+
     setDataWarga(nilaiData);
-    
-    // Set selected warga pertama atau yang terakhir dinilai
+
     if (nilaiData.length > 0) {
       const currentId = localStorage.getItem('currentWargaId');
-      const current = nilaiData.find((w: WargaData) => w.id === currentId);
+      const current = nilaiData.find(w => w.id === currentId);
       setSelectedWarga(current || nilaiData[nilaiData.length - 1]);
     }
+
+      if (nilaiData.length > 0) {
+        const currentId = localStorage.getItem('currentWargaId');
+        const current = nilaiData.find((w: WargaData) => w.id === currentId);
+        setSelectedWarga(current || nilaiData[nilaiData.length - 1]);
+      }
+    };
+
+    loadData();
   }, []);
 
   const handleCetak = () => {
@@ -48,7 +79,7 @@ export function HasilPenilaian() {
     window.print();
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (
       confirm(
         'Apakah Anda yakin ingin mereset penilaian? Data akan dipindahkan ke riwayat.'
@@ -57,15 +88,7 @@ export function HasilPenilaian() {
       if (!selectedWarga) return;
   
       // Ambil semua data
-      const allData = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-  
-      // Hapus warga yang sedang dipilih dari hasil penilaian
-      const updatedData = allData.filter(
-        (w: WargaData) => w.id !== selectedWarga.id
-      );
-  
-      // Simpan kembali data tanpa warga tersebut
-      localStorage.setItem('dataWarga', JSON.stringify(updatedData));
+      await deleteWargaById(selectedWarga.id);
   
       // Hapus current ID
       localStorage.removeItem('currentWargaId');
@@ -83,28 +106,13 @@ export function HasilPenilaian() {
     }
   };
 
-const handleKirimKepala = () => {
+const handleKirimKepala = async () => {
   if (!selectedWarga) return;
 
-  const allData = JSON.parse(
-    localStorage.getItem('dataWarga') || '[]'
-  );
-
-  const updatedAllData = allData.map((w: WargaData) => {
-    if (w.id === selectedWarga.id) {
-      return {
-        ...w,
-        terkirim: true,
-        statusApproval: w.statusApproval || 'Pending',
-      };
-    }
-    return w;
+  await updateWargaById(selectedWarga.id, {
+    terkirim: true,
+    statusApproval: selectedWarga.statusApproval || 'Pending',
   });
-
-  localStorage.setItem(
-    'dataWarga',
-    JSON.stringify(updatedAllData)
-  );
 
   const updatedData = dataWarga.map((w) => {
     if (w.id === selectedWarga.id) {

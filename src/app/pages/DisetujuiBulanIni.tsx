@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, CheckCircle, Eye,UserCheck } from 'lucide-react';
+import { loadAccessibleWarga } from '../utils/wargaData';
 
 interface WargaData {
   id: string;
@@ -28,12 +29,29 @@ export function DisetujuiBulanIni() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const data = JSON.parse(localStorage.getItem('dataWarga') || '[]');
-    // Data yang sudah disetujui oleh Kepala Desa
-    const approvedData = data.filter(
-      (w: WargaData) => w.statusApproval === 'Disetujui'
+  const loadData = async () => {
+    const data = await loadAccessibleWarga();
+
+    const mapped: WargaData[] = data.map((w: any) => ({
+      id: w.id,
+      nik: w.nik || "",
+      nama: w.nama || "",
+      alamat: w.alamat || "",
+      jumlahAnggota: Number(w.jumlahAnggota || 0),
+      jumlahTanggungan: Number(w.jumlahTanggungan || 0),
+      pendapatan: w.pendapatan || "",
+      pekerjaan: w.pekerjaan || "",
+      tanggal: w.tanggal || "",
+      nilaiAkhir: Number(w.nilaiAkhir || 0),
+      status: w.status || "Tidak Layak",
+      statusApproval: w.statusApproval,
+      bobotKriteria: w.bobotKriteria || [],
+    }));
+
+    const approvedData = mapped.filter(
+      (w) => w.statusApproval === 'Disetujui'
     );
+
     setDataWarga(approvedData);
   };
 
