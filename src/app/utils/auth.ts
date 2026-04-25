@@ -28,6 +28,10 @@ export interface AppUser {
   createdAt?: string;
 }
 
+type AppError = Error & {
+  code?: string;
+};
+
 const getUserCreatedAt = (
   source?: { createdAt?: unknown },
   fallbackCreatedAt?: string,
@@ -66,6 +70,12 @@ const ensureFirebaseReady = () => {
   if (!isFirebaseConfigured || !auth || !db) {
     throw new Error('Firebase belum dikonfigurasi. Lengkapi file .env terlebih dahulu.');
   }
+};
+
+const createAppError = (message: string, code?: string): AppError => {
+  const error = new Error(message) as AppError;
+  error.code = code;
+  return error;
 };
 
 export const saveCurrentUser = (user: AppUser | null) => {
@@ -250,11 +260,32 @@ export const loginWithFirebase = async (payload: {
   role: UserRole;
 }) => {
   ensureFirebaseReady();
-  const credential = await signInWithEmailAndPassword(
-    auth!,
-    payload.email,
-    payload.password
-  );
+  let credential;
+
+  try {
+    credential = await signInWithEmailAndPassword(
+      auth!,
+      payload.email,
+      payload.password
+    );
+  } catch (error) {
+    if (
+      error instanceof FirebaseError &&
+      (error.code === 'auth/invalid-credential' ||
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password')
+    ) {
+      const registered = await isEmailRegistered(payload.email).catch(() => null);
+
+      if (registered === false) {
+        throw createAppError('Email belum terdaftar. Silakan registrasi terlebih dahulu.', 'auth/user-not-found');
+      }
+
+      throw createAppError('Email atau password salah.', 'auth/wrong-password');
+    }
+
+    throw error;
+  }
 
   const storedUser = getStoredUserByEmail(payload.email);
   const fallbackUser: AppUser = {

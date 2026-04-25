@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Lock, User, Building2, Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
 import {
-  isEmailRegistered,
   loginWithFirebase,
   registerWithFirebase,
   restoreCurrentUser,
@@ -106,10 +105,10 @@ export function Login() {
       console.error(error);
 
       if (error.code === "auth/user-not-found") {
-        alert("Email belum terdaftar");
+        alert("Email belum terdaftar. Silakan daftar terlebih dahulu.");
         setIsRegister(true);
       } else if (error.code === "auth/wrong-password") {
-        alert("Password salah");
+        alert("Email atau password salah.");
       } else if (error.code === "auth/email-already-in-use") {
         alert("Email sudah terdaftar, silakan login");
         setIsRegister(false);
