@@ -14,7 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { getWeeklyActivity, getMonthlyTrend, resetLegacyPerangkatHistoryOnce } from '../utils/activityLogger';
+import { getWeeklyActivity, getMonthlyTrend, getMonthlyTrendFromWargaData, resetLegacyPerangkatHistoryOnce } from '../utils/activityLogger';
 import { logoutFromFirebase } from '../utils/auth';
 import { loadAccessibleWarga } from '../utils/wargaData';
 
@@ -34,12 +34,13 @@ export function DashboardPerangkat() {
 useEffect(() => {
   resetLegacyPerangkatHistoryOnce();
   fetchData();
-  loadChartData();
 }, []);
 
-  const loadChartData = () => {
+  const loadChartData = (wargaData?: any[]) => {
     const weekly = getWeeklyActivity();
-    const monthly = getMonthlyTrend();
+    const monthly = wargaData 
+      ? getMonthlyTrendFromWargaData(wargaData)
+      : getMonthlyTrend();
     setWeeklyActivity(weekly);
     setMonthlyData(monthly);
   };
@@ -56,9 +57,18 @@ const fetchData = () => {
         (w.statusApproval === "Pending" || !w.statusApproval)
       ).length;
 
-      const disetujuiBulanIni = data.filter((w: any) =>
-        w.statusApproval === "Disetujui"
-      ).length;
+      // Filter disetujui hanya bulan ini
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const disetujuiBulanIni = data.filter((w: any) => {
+        if (w.statusApproval !== "Disetujui") return false;
+        if (!w.statusApprovalAt) return false;
+        
+        const approvalDate = new Date(w.statusApprovalAt);
+        return approvalDate.getMonth() === currentMonth && 
+               approvalDate.getFullYear() === currentYear;
+      }).length;
 
       const layak = data.filter((w: any) =>
         w.status === "Layak"
@@ -76,6 +86,9 @@ const fetchData = () => {
         layak,
         tidakLayak
       });
+
+      // Gunakan data warga untuk menghitung monthly trend yang lebih akurat
+      loadChartData(data);
     })
     .catch(err => console.error(err));
 };
@@ -253,18 +266,20 @@ const fetchData = () => {
             transition={{ delay: 0.3 }}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Aktivitas Mingguan</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Aktivitas Mingguan</h3>
+            <p className="text-sm text-gray-500 mb-4">Durasi waktu (dalam menit) yang dihabiskan admin setiap hari</p>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={weeklyActivity}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="hari" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
+                <YAxis stroke="#6b7280" label={{ value: 'Menit', angle: -90, position: 'insideLeft' }} />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#fff', 
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
+                  formatter={(value) => [`${value} menit`, 'Durasi']}
                 />
                 <Bar dataKey="aktivitas" fill="url(#colorActivity)" radius={[8, 8, 0, 0]} />
                 <defs>
@@ -314,17 +329,23 @@ const fetchData = () => {
           transition={{ delay: 0.5 }}
           className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tren Penilaian Bulanan</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Tren Penilaian Bulanan</h3>
+          <p className="text-sm text-gray-500 mb-4">Jumlah penilaian yang dilakukan dan yang sudah disetujui setiap bulan</p>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="bulan" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
+              <YAxis stroke="#6b7280" label={{ value: 'Jumlah', angle: -90, position: 'insideLeft' }} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#fff', 
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px'
+                }}
+                formatter={(value, name) => {
+                  if (name === 'penilaian') return [`${value} penilaian`, 'Total Penilaian'];
+                  if (name === 'disetujui') return [`${value} disetujui`, 'Disetujui'];
+                  return [value, name];
                 }}
               />
               <Line 

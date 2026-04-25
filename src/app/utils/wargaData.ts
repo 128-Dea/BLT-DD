@@ -20,6 +20,8 @@ export interface WargaRecord {
   firebaseSyncStatus?: 'synced' | 'pending_firestore';
   createdAt?: string;
   nilaiAkhir?: number | null;
+  penilaianCompletedAt?: string; // Kapan penilaian selesai
+  statusApprovalAt?: string; // Kapan approval diberikan
   tanggal?: string;
   terkirim?: boolean;
   statusApproval?: string;

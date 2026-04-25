@@ -28,6 +28,7 @@ import {
   Cell,
 } from "recharts";
 import { logoutFromFirebase } from "../utils/auth";
+import { logActivity } from "../utils/activityLogger";
 import {
   getAllStoredWarga,
   loadAccessibleWarga,
@@ -135,8 +136,16 @@ const loadData = async () => {
       // Update data
       await updateWargaById(id, {
         statusApproval: approve ? "Disetujui" : "Ditolak",
+        statusApprovalAt: approve ? new Date().toISOString() : undefined, // Simpan waktu approval jika disetujui
       });
       await loadData();
+
+      // LOG AKTIVITAS APPROVAL
+      logActivity(
+        approve ? 'setujui' : 'tolak',
+        warga.nama,
+        `Kepala Desa ${approve ? "menyetujui" : "menolak"} penilaian untuk ${warga.nama}`
+      );
 
       alert(
         `✓ Penilaian berhasil ${approve ? "disetujui" : "ditolak"}!`,

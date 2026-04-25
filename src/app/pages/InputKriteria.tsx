@@ -13,6 +13,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { loadAccessibleWarga, updateWargaById } from '../utils/wargaData';
+import { logActivity } from '../utils/activityLogger';
 
 const KRITERIA = [
   { id: 'pendapatan', nama: 'Pendapatan' },
@@ -383,8 +384,16 @@ export function InputKriteria() {
           nilaiAkhir: result.nilaiAkhir,
           status: result.status,
           statusApproval: 'Pending',
-          bobotKriteria: result.weights
+          bobotKriteria: result.weights,
+          penilaianCompletedAt: new Date().toISOString() // Simpan waktu penilaian selesai
         });
+
+        // LOG AKTIVITAS PENILAIAN
+        logActivity(
+          'hitung',
+          currentWarga.nama,
+          `Melakukan penilaian untuk ${currentWarga.nama} dengan nilai akhir ${result.nilaiAkhir.toFixed(2)} (Status: ${result.status})`
+        );
       }
 
       setCalculating(false);
