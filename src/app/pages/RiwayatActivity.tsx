@@ -28,7 +28,7 @@ export function RiwayatActivity() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
   const [filter, setFilter] = useState<
-    'all' | 'tambah' | 'edit' | 'hapus' | 'kirim'
+    'all' | 'tambah' | 'edit' | 'hapus' | 'kirim' | 'hitung'
   >('all');
 
   useEffect(() => {
@@ -93,6 +93,18 @@ const handleKirimWarga = (nama: string) => {
   loadActivities();
 };
 
+const handleHitung = (nama: string, hasil: number) => {
+  logActivity(
+    'hitung',
+    nama,
+    `Melakukan perhitungan untuk ${nama} dengan hasil ${hasil}`
+  );
+
+  alert(`Hasil perhitungan: ${hasil}`);
+
+  loadActivities();
+};
+
   const getActionColor = (action: string) => {
     switch (action) {
       case 'tambah':
@@ -106,6 +118,9 @@ const handleKirimWarga = (nama: string) => {
 
       case 'kirim':
         return 'bg-purple-100 text-purple-700';
+
+      case 'hitung':
+        return 'bg-gray-200 text-gray-800';
 
       default:
         return 'bg-gray-100 text-gray-700';
@@ -123,6 +138,9 @@ const handleKirimWarga = (nama: string) => {
       case 'kirim':
         return '📤';
 
+      case 'hitung':
+        return '🧮';
+      
       default:
         return '📝';
     }
@@ -169,7 +187,7 @@ const handleKirimWarga = (nama: string) => {
             <h2 className="text-lg font-semibold text-gray-900">Filter Aktivitas</h2>
           </div>
           <div className="flex flex-wrap gap-2">
-            {['all', 'tambah', 'edit', 'hapus', 'kirim'].map((f) => (
+            {['all', 'tambah', 'edit', 'hapus', 'kirim', 'hitung'].map((f) => (
               <motion.button
                 key={f}
                 whileHover={{ scale: 1.05 }}
