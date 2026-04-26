@@ -87,13 +87,10 @@ export function HasilPenilaian() {
     ) {
       if (!selectedWarga) return;
   
-      // Ambil semua data
       await deleteWargaById(selectedWarga.id);
   
-      // Hapus current ID
       localStorage.removeItem('currentWargaId');
   
-      // Simpan ke riwayat aktivitas
       logActivity(
         'hapus',
         `${selectedWarga.nik} - ${selectedWarga.nama}`,
@@ -106,42 +103,42 @@ export function HasilPenilaian() {
     }
   };
 
-const handleKirimKepala = async () => {
-  if (!selectedWarga) return;
+  const handleKirimKepala = async () => {
+    if (!selectedWarga) return;
 
-  await updateWargaById(selectedWarga.id, {
-    terkirim: true,
-    statusApproval: selectedWarga.statusApproval || 'Pending',
-  });
+    await updateWargaById(selectedWarga.id, {
+      terkirim: true,
+      statusApproval: selectedWarga.statusApproval || 'Pending',
+    });
 
-  const updatedData = dataWarga.map((w) => {
-    if (w.id === selectedWarga.id) {
-      return {
-        ...w,
-        terkirim: true,
-        statusApproval: w.statusApproval || 'Pending',
-      };
-    }
-    return w;
-  });
+    const updatedData = dataWarga.map((w) => {
+      if (w.id === selectedWarga.id) {
+        return {
+          ...w,
+          terkirim: true,
+          statusApproval: w.statusApproval || 'Pending',
+        };
+      }
+      return w;
+    });
 
-  setDataWarga(updatedData);
+    setDataWarga(updatedData);
 
-  setSelectedWarga({
-    ...selectedWarga,
-    terkirim: true,
-    statusApproval: selectedWarga.statusApproval || 'Pending',
-  });
+    setSelectedWarga({
+      ...selectedWarga,
+      terkirim: true,
+      statusApproval: selectedWarga.statusApproval || 'Pending',
+    });
 
-  // LOG RIWAYAT
-  logActivity(
-    'kirim',
-    selectedWarga.nama,
-    `Mengirim hasil penilaian ${selectedWarga.nama} ke Kepala Desa`
-  );
+    logActivity(
+      'kirim',
+      selectedWarga.nama,
+      `Mengirim hasil penilaian ${selectedWarga.nama} ke Kepala Desa`
+    );
 
-  alert('✓ Hasil penilaian berhasil dikirim ke Kepala Desa!');
-};
+    alert('✓ Hasil penilaian berhasil dikirim ke Kepala Desa!');
+  };
+
   const getPendapatanLabel = (kategori: string) => {
     const labels: any = {
       'sangat_miskin': ' (< Rp 1.500.000)',
@@ -154,17 +151,18 @@ const handleKirimKepala = async () => {
 
   const bobotKriteria = selectedWarga?.bobotKriteria || [0.40, 0.30, 0.20, 0.10];
   const kriteriaLabels = ['Pendapatan', 'Jumlah Tanggungan', 'Pekerjaan', 'Kondisi Tempat Tinggal'];
-    const capitalizeFirst = (text: string) => {
-  if (!text) return "";
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
+
+  const capitalizeFirst = (text: string) => {
+    if (!text) return "";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
 
   return (
-<div className="min-h-screen bg-[#e6f0fa]">
+    <div className="min-h-screen bg-[#e6f0fa]">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="lg:col-span-1 flex no-print">
+          <div className="lg:col-span-1 flex no-print">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -198,7 +196,7 @@ const handleKirimKepala = async () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Daftar Penilaian</h3>
               
               {dataWarga.length === 0 ? (
-                 <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
                   <Eye className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm">Belum ada data penilaian</p>
                 </div>
@@ -218,7 +216,7 @@ const handleKirimKepala = async () => {
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900"> {capitalizeFirst(warga.nama)}</p>
+                          <p className="font-medium text-gray-900">{capitalizeFirst(warga.nama)}</p>
                           <p className="text-xs text-gray-500">NIK: {warga.nik}</p>
                         </div>
                         {warga.terkirim && (
@@ -246,59 +244,48 @@ const handleKirimKepala = async () => {
             </motion.div>
           </div>
 
-{/* Detail Warga */}
-{selectedWarga && (
-<div className="lg:col-span-2 space-y-6 print-area">
-    
-    {/* Status Card */}
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`rounded-2xl shadow-xl p-8 text-white ${
-        selectedWarga.status === 'Layak'
-          ? 'bg-green-600 print:bg-green-600'
-          : 'bg-red-600 print:bg-red-600'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        
-        <div>
-          <p className="text-sm opacity-90 mb-2">
-            Status Kelayakan
-          </p>
+          {/* Detail Warga */}
+          {selectedWarga && (
+            <div className="lg:col-span-2 space-y-6 print-area">
 
-          <h2 className="text-4xl font-bold mb-3">
-            {selectedWarga.status}
-          </h2>
-
-          <p className="text-lg opacity-90">
-            {selectedWarga.status === 'Layak' 
-              ? 'Warga memenuhi syarat untuk menerima BLT-DD'
-              : 'Warga belum memenuhi syarat untuk menerima BLT-DD'
-            }
-          </p>
-
-          {selectedWarga.terkirim && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg w-fit"
-            >
-              <Check className="w-5 h-5" />
-              <span>Sudah dikirim ke Kepala Desa</span>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Icon Status */}
-        {selectedWarga.status === 'Layak' ? (
-          <CheckCircle className="w-24 h-24 opacity-80" />
-        ) : (
-          <XCircle className="w-24 h-24 opacity-80" />
-        )}
-
-      </div>
-    </motion.div>
+              {/* Status Card */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`rounded-2xl shadow-xl p-8 text-white ${
+                  selectedWarga.status === 'Layak'
+                    ? 'bg-green-600 print:bg-green-600'
+                    : 'bg-red-600 print:bg-red-600'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90 mb-2">Status Kelayakan</p>
+                    <h2 className="text-4xl font-bold mb-3">{selectedWarga.status}</h2>
+                    <p className="text-lg opacity-90">
+                      {selectedWarga.status === 'Layak' 
+                        ? 'Warga memenuhi syarat untuk menerima BLT-DD'
+                        : 'Warga belum memenuhi syarat untuk menerima BLT-DD'
+                      }
+                    </p>
+                    {selectedWarga.terkirim && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg w-fit"
+                      >
+                        <Check className="w-5 h-5" />
+                        <span>Sudah dikirim ke Kepala Desa</span>
+                      </motion.div>
+                    )}
+                  </div>
+                  {selectedWarga.status === 'Layak' ? (
+                    <CheckCircle className="w-24 h-24 opacity-80" />
+                  ) : (
+                    <XCircle className="w-24 h-24 opacity-80" />
+                  )}
+                </div>
+              </motion.div>
 
               {/* Data Warga */}
               <motion.div 
@@ -314,11 +301,12 @@ const handleKirimKepala = async () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Nama Lengkap</p>
-                    <p className="font-medium text-gray-900"> {capitalizeFirst(selectedWarga.nama)}</p>
+                    <p className="font-medium text-gray-900">{capitalizeFirst(selectedWarga.nama)}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-sm text-gray-600 mb-1">Alamat</p>
-                    <p className="font-medium text-gray-900">{capitalizeFirst(selectedWarga.nama)}</p>
+                    {/* ✅ FIXED: was selectedWarga.nama, now selectedWarga.alamat */}
+                    <p className="font-medium text-gray-900">{capitalizeFirst(selectedWarga.alamat)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Jumlah Anggota Keluarga</p>
@@ -457,6 +445,7 @@ const handleKirimKepala = async () => {
                 <p>Hasil penilaian akan dikirim ke Kepala Desa untuk proses persetujuan.</p>
                 <p className="mt-1">Tanggal penilaian: {selectedWarga.tanggal}</p>
               </div>
+
             </div>
           )}
         </div>
