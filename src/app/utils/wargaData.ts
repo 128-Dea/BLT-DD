@@ -10,7 +10,7 @@ import {
 import { FirebaseError } from 'firebase/app';
 import { db, isFirebaseConfigured } from '../../firebase';
 import type { AppUser } from './auth';
-import { getWargaProcessMessage, WARGA_LOAD_FALLBACK_MESSAGE, WARGA_UPDATE_PENDING_MESSAGE } from './wargaMessages';
+import { WARGA_LOAD_FALLBACK_MESSAGE, WARGA_UPDATE_PENDING_MESSAGE } from './wargaMessages';
 
 export interface WargaRecord {
   id: string;
@@ -37,11 +37,7 @@ const isPermissionError = (error: unknown) =>
     error.code === 'firestore/permission-denied');
 
 const notifyDatabaseProcessFailure = (error: unknown, fallbackMessage: string) => {
-  console.error('Gagal memproses data warga di Firestore:', error);
-
-  if (typeof window !== 'undefined') {
-    window.alert(getWargaProcessMessage(error, fallbackMessage));
-  }
+  console.error(`Gagal memproses data warga di Firestore: ${fallbackMessage}`, error);
 };
 
 export const getCurrentAppUser = (): AppUser | null => {
@@ -59,6 +55,19 @@ const sortWarga = (items: WargaRecord[]) => {
     const timeB = new Date(b.createdAt || b.tanggal || 0).getTime();
     return timeB - timeA;
   });
+};
+
+const withSyncStatus = (
+  item: WargaRecord,
+  syncStatus: WargaRecord['firebaseSyncStatus']
+): WargaRecord => ({
+  ...item,
+  firebaseSyncStatus: syncStatus,
+});
+
+const toFirestorePayload = (item: WargaRecord) => {
+  const { firebaseSyncStatus, ...payload } = item;
+  return payload;
 };
 
 export const saveAllStoredWarga = (items: WargaRecord[]) => {
@@ -119,14 +128,64 @@ const mergeStoredWarga = (
     });
 
   remoteItems.forEach((item) => {
+    const existingItem = merged.get(item.id);
+
+    if (existingItem?.firebaseSyncStatus === 'pending_firestore') {
+      merged.set(item.id, existingItem);
+      return;
+    }
+
     merged.set(item.id, {
-      ...merged.get(item.id),
+      ...existingItem,
       ...item,
       firebaseSyncStatus: 'synced',
     });
   });
 
   saveAllStoredWarga(Array.from(merged.values()));
+};
+
+const syncPendingAccessibleWarga = async (
+  user: AppUser | null = getCurrentAppUser()
+) => {
+  if (!user || !db || !isFirebaseConfigured) {
+    return;
+  }
+
+  const pendingItems = filterWargaByCurrentUser(getAllStoredWarga(), user).filter(
+    (item) =>
+      item.firebaseSyncStatus === 'pending_firestore' &&
+      !item.id.startsWith('local-')
+  );
+
+  if (pendingItems.length === 0) {
+    return;
+  }
+
+  const syncedIds = new Set<string>();
+
+  await Promise.all(
+    pendingItems.map(async (item) => {
+      try {
+        await setDoc(doc(db, 'dataWarga', item.id), toFirestorePayload(item), {
+          merge: true,
+        });
+        syncedIds.add(item.id);
+      } catch (error) {
+        notifyDatabaseProcessFailure(error, WARGA_UPDATE_PENDING_MESSAGE);
+      }
+    })
+  );
+
+  if (syncedIds.size === 0) {
+    return;
+  }
+
+  saveAllStoredWarga(
+    getAllStoredWarga().map((item) =>
+      syncedIds.has(item.id) ? withSyncStatus(item, 'synced') : item
+    )
+  );
 };
 
 export const loadAccessibleWarga = async (
@@ -139,6 +198,8 @@ export const loadAccessibleWarga = async (
   }
 
   try {
+    await syncPendingAccessibleWarga(user);
+
     const dataWargaRef = collection(db, 'dataWarga');
     const snapshot =
       user.role === 'kepala_desa'
@@ -163,9 +224,7 @@ export const loadAccessibleWarga = async (
     });
 
     pendingLocal.forEach((item) => {
-      if (!merged.has(item.id)) {
-        merged.set(item.id, item);
-      }
+      merged.set(item.id, item);
     });
 
     return sortWarga(Array.from(merged.values()));
@@ -198,8 +257,13 @@ export const updateWargaById = async (
     ...updates,
   };
 
+  const localNextItem =
+    db && isFirebaseConfigured && !id.startsWith('local-')
+      ? withSyncStatus(nextItem, existing.firebaseSyncStatus || 'synced')
+      : withSyncStatus(nextItem, 'pending_firestore');
+
   saveAllStoredWarga(
-    allData.map((item) => (item.id === id ? nextItem : item))
+    allData.map((item) => (item.id === id ? localNextItem : item))
   );
 
   if (db && isFirebaseConfigured && !id.startsWith('local-')) {
@@ -208,19 +272,26 @@ export const updateWargaById = async (
       saveAllStoredWarga(
         getAllStoredWarga().map((item) =>
           item.id === id
-            ? { ...item, firebaseSyncStatus: 'synced' }
+            ? withSyncStatus(item, 'synced')
             : item
         )
       );
     } catch (error) {
       notifyDatabaseProcessFailure(error, WARGA_UPDATE_PENDING_MESSAGE);
+      saveAllStoredWarga(
+        getAllStoredWarga().map((item) =>
+          item.id === id
+            ? withSyncStatus(item, 'pending_firestore')
+            : item
+        )
+      );
       if (!isPermissionError(error)) {
         throw error;
       }
     }
   }
 
-  return nextItem;
+  return getAllStoredWarga().find((item) => item.id === id) || localNextItem;
 };
 
 export const deleteWargaById = async (id: string) => {

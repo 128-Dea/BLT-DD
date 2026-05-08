@@ -134,7 +134,7 @@ const loadData = async () => {
       )
     ) {
       // Update data
-      await updateWargaById(id, {
+      const updatedWarga = await updateWargaById(id, {
         statusApproval: approve ? "Disetujui" : "Ditolak",
         statusApprovalAt: approve ? new Date().toISOString() : undefined, // Simpan waktu approval jika disetujui
       });
