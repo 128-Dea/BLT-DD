@@ -19,6 +19,7 @@ export interface SessionLog {
   email: string;
   startTime: number;
   lastActivityTime: number;
+  activeDurationMs?: number;
 }
 
 type ActivityFilter = {
@@ -70,19 +71,48 @@ const startSession = (email?: string) => {
     email: targetEmail,
     startTime: now,
     lastActivityTime: now,
+    activeDurationMs: 0,
   };
   
+  saveSessionData(session, targetEmail);
+};
+
+export const updateActiveSession = (email?: string) => {
+  const currentUser = getCurrentUser();
+  const targetEmail = email || currentUser.email || '';
+
+  if (!targetEmail) {
+    return;
+  }
+
+  let session = getSessionData(targetEmail);
+  if (!session) {
+    startSession(targetEmail);
+    return;
+  }
+
+  const now = Date.now();
+  const elapsedMs = now - session.lastActivityTime;
+  const maxActiveGapMs = 2 * 60 * 1000;
+
+  session = {
+    ...session,
+    activeDurationMs:
+      (session.activeDurationMs || 0) +
+      (elapsedMs > 0 && elapsedMs <= maxActiveGapMs ? elapsedMs : 0),
+    lastActivityTime: now,
+  };
+
   saveSessionData(session, targetEmail);
 };
 
 const getSessionDuration = (email?: string): number => {
   const session = getSessionData(email);
   if (!session) return 0;
-  
-  const now = Date.now();
-  const durationMs = now - session.startTime;
+
+  const durationMs = session.activeDurationMs ?? (Date.now() - session.startTime);
   const durationMinutes = Math.floor(durationMs / (1000 * 60));
-  return Math.min(durationMinutes, 480); // Max 8 jam per sesi
+  return durationMinutes;
 };
 
 const readRawActivities = (email?: string): ActivityLog[] => {
@@ -115,18 +145,8 @@ export function logActivity(
     session = getSessionData(email);
   }
 
-  // Hitung durasi
-  const now = Date.now();
-  let duration = 0;
-  if (session) {
-    const durationMs = now - session.startTime;
-    duration = Math.floor(durationMs / (1000 * 60)); // convert ke menit
-    if (duration > 480) duration = 480; // max 8 jam
-    
-    // Update last activity time
-    session.lastActivityTime = now;
-    saveSessionData(session, email);
-  }
+  updateActiveSession(email);
+  const duration = getSessionDuration(email);
 
   const activity: ActivityLog = {
     id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
@@ -196,6 +216,8 @@ export function resetLegacyPerangkatHistoryOnce(): void {
 }
 
 export function getWeeklyActivity(): { hari: string; aktivitas: number }[] {
+  updateActiveSession();
+
   const logs = readRawActivities();
   const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
@@ -210,16 +232,44 @@ export function getWeeklyActivity(): { hari: string; aktivitas: number }[] {
 
     if (daysDiff < 7) {
       const dayIndex = logDate.getDay();
-      // Tambahkan durasi dari aktivitas (jika ada), atau 1 menit jika tidak ada durasi
       const duration = log.duration || 1;
-      weekDuration[dayIndex] += duration;
+      weekDuration[dayIndex] = Math.max(weekDuration[dayIndex], duration);
     }
   });
+
+  const session = getSessionData();
+  if (session) {
+    const sessionDate = new Date(session.startTime);
+    const daysDiff = Math.floor(
+      (now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysDiff < 7) {
+      const dayIndex = sessionDate.getDay();
+      weekDuration[dayIndex] = Math.max(
+        weekDuration[dayIndex],
+        getSessionDuration(session.email)
+      );
+    }
+  }
 
   return days.map((hari, index) => ({
     hari,
     aktivitas: weekDuration[index],
   }));
+}
+
+export function formatActivityDuration(minutes: number): string {
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    return remainingMinutes > 0
+      ? `${hours} jam ${remainingMinutes} menit`
+      : `${hours} jam`;
+  }
+
+  return `${minutes} menit`;
 }
 
 export function getMonthlyTrend(): {

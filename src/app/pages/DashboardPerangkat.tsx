@@ -13,8 +13,8 @@ import {
   UserCircle,
   Info
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { getWeeklyActivity, getMonthlyTrend, getMonthlyTrendFromWargaData, resetLegacyPerangkatHistoryOnce } from '../utils/activityLogger';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ComposedChart, ReferenceLine } from 'recharts';
+import { formatActivityDuration, getWeeklyActivity, getMonthlyTrend, getMonthlyTrendFromWargaData, resetLegacyPerangkatHistoryOnce } from '../utils/activityLogger';
 import { logoutFromFirebase } from '../utils/auth';
 import { loadAccessibleWarga } from '../utils/wargaData';
 
@@ -31,9 +31,61 @@ export function DashboardPerangkat() {
   const [weeklyActivity, setWeeklyActivity] = useState<{ hari: string; aktivitas: number }[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ bulan: string; penilaian: number; disetujui: number }[]>([]);
 
+  const getActivityAxisMax = () => {
+    const maxDuration = Math.max(0, ...weeklyActivity.map((item) => item.aktivitas));
+
+    if (maxDuration <= 60) return 60;
+    if (maxDuration <= 120) return 120;
+    if (maxDuration <= 240) return 240;
+    if (maxDuration <= 480) return 480;
+
+    return Math.ceil(maxDuration / 120) * 120;
+  };
+
+  const getActivityTicks = () => {
+    const axisMax = getActivityAxisMax();
+    const step = axisMax <= 60 ? 15 : axisMax <= 120 ? 30 : 60;
+
+    return Array.from(
+      { length: Math.floor(axisMax / step) + 1 },
+      (_, index) => index * step
+    );
+  };
+
+  const formatActivityAxisTick = (minutes: number) => {
+    if (minutes === 0) return '0m';
+    if (minutes < 60) return `${minutes}m`;
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    return remainingMinutes > 0 ? `${hours}j ${remainingMinutes}m` : `${hours}j`;
+  };
+
+  const activityReferenceDurations = Array.from(
+    new Set(weeklyActivity.map((item) => item.aktivitas).filter((duration) => duration > 0))
+  );
+
 useEffect(() => {
   resetLegacyPerangkatHistoryOnce();
   fetchData();
+
+  const activityTimer = window.setInterval(() => {
+    setWeeklyActivity(getWeeklyActivity());
+  }, 60000);
+
+  const refreshWeeklyActivity = () => {
+    setWeeklyActivity(getWeeklyActivity());
+  };
+
+  window.addEventListener('focus', refreshWeeklyActivity);
+  document.addEventListener('visibilitychange', refreshWeeklyActivity);
+
+  return () => {
+    window.clearInterval(activityTimer);
+    window.removeEventListener('focus', refreshWeeklyActivity);
+    document.removeEventListener('visibilitychange', refreshWeeklyActivity);
+  };
 }, []);
 
   const loadChartData = (wargaData?: any[]) => {
@@ -267,20 +319,46 @@ const fetchData = () => {
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Aktivitas Mingguan</h3>
-            <p className="text-sm text-gray-500 mb-4">Durasi waktu (dalam menit) yang dihabiskan admin setiap hari</p>
+            <p className="text-sm text-gray-500 mb-4">Durasi waktu yang dihabiskan admin setiap hari</p>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={weeklyActivity}>
+              <ComposedChart data={weeklyActivity} margin={{ top: 12, right: 20, left: 34, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="hari" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" label={{ value: 'Menit', angle: -90, position: 'insideLeft' }} />
+                <YAxis
+                  stroke="#6b7280"
+                  label={{
+                    value: 'Durasi',
+                    angle: -90,
+                    position: 'insideLeft',
+                    offset: -18,
+                    fill: '#6b7280',
+                  }}
+                  width={58}
+                  tickMargin={8}
+                  domain={[0, getActivityAxisMax()]}
+                  ticks={getActivityTicks()}
+                  tickFormatter={(value) => formatActivityAxisTick(Number(value))}
+                />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#fff', 
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
-                  formatter={(value) => [`${value} menit`, 'Durasi']}
+                  formatter={(value) => [
+                    formatActivityDuration(Number(value)),
+                    'Durasi',
+                  ]}
                 />
+                {activityReferenceDurations.map((duration) => (
+                  <ReferenceLine
+                    key={duration}
+                    y={duration}
+                    stroke="#1d4ed8"
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                  />
+                ))}
                 <Bar dataKey="aktivitas" fill="url(#colorActivity)" radius={[8, 8, 0, 0]} />
                 <defs>
                   <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
@@ -288,8 +366,9 @@ const fetchData = () => {
                     <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.8}/>
                   </linearGradient>
                 </defs>
-              </BarChart>
+              </ComposedChart>
             </ResponsiveContainer>
+            <p className="mt-2 text-xs text-gray-500 text-center">Keterangan: m = menit, j = jam</p>
           </motion.div>
 
           {/* Status Distribution */}
