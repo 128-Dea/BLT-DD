@@ -10,7 +10,6 @@ export function NetworkStatusNotifier() {
   useEffect(() => {
     const handleOffline = () => {
       setIsOffline(true);
-      window.alert(NETWORK_ERROR_MESSAGE);
     };
 
     const handleOnline = () => {
@@ -31,10 +30,14 @@ export function NetworkStatusNotifier() {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] border-b border-red-200 bg-red-50 px-4 py-3 text-red-800 shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 text-sm font-medium">
-        <WifiOff className="h-4 w-4 shrink-0" />
-        <span>{NETWORK_ERROR_MESSAGE}</span>
+    <div className="fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-white px-6 text-center">
+      <div className="flex max-w-md flex-col items-center gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-200 text-gray-600">
+          <WifiOff className="h-7 w-7" />
+        </div>
+        <p className="text-base font-medium leading-7 text-gray-800">
+          {NETWORK_ERROR_MESSAGE}
+        </p>
       </div>
     </div>
   );
