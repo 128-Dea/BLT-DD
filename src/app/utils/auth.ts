@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { auth, db, isFirebaseConfigured } from '../../firebase';
+import { isNetworkError, NETWORK_ERROR_MESSAGE } from './api';
 
 export type UserRole = 'perangkat_desa' | 'kepala_desa';
 
@@ -158,6 +159,10 @@ const buildAppUser = async (firebaseUser: User): Promise<AppUser | null> => {
 
     return appUser;
   } catch (error) {
+    if (isNetworkError(error)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+
     if (!isPermissionError(error)) {
       throw error;
     }
@@ -218,6 +223,10 @@ export const registerWithFirebase = async (payload: {
       payload.password
     );
   } catch (error) {
+    if (isNetworkError(error)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+
     if (
       error instanceof FirebaseError &&
       error.code === 'auth/email-already-in-use'
@@ -245,6 +254,10 @@ export const registerWithFirebase = async (payload: {
       createdAt: serverTimestamp(),
     });
   } catch (error) {
+    if (isNetworkError(error)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+
     if (!isPermissionError(error)) {
       throw error;
     }
@@ -269,6 +282,10 @@ export const loginWithFirebase = async (payload: {
       payload.password
     );
   } catch (error) {
+    if (isNetworkError(error)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+
     if (
       error instanceof FirebaseError &&
       (error.code === 'auth/invalid-credential' ||
@@ -376,6 +393,10 @@ export const updateUserProfile = async (
     ensureFirebaseReady();
     await setDoc(userDocRef(uid), payload, { merge: true });
   } catch (error) {
+    if (isNetworkError(error)) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
+
     if (!isPermissionError(error)) {
       throw error;
     }

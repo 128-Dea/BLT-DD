@@ -8,11 +8,10 @@ import { collection, addDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { restoreCurrentUser } from '../utils/auth';
 import { appendStoredWarga, getCurrentAppUser } from '../utils/wargaData';
+import { API_BASE_URL, fetchWithNetworkHandling } from '../utils/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const DATABASE_SAVE_FAILED_MESSAGE =
-  'Data warga tersimpan di perangkat ini, tetapi gagal disimpan ke database. Periksa koneksi atau izin database, lalu coba lagi.';
-
+  'Data warga belum berhasil disimpan ke database. Salinan sementara tersimpan di browser ini. Periksa koneksi atau izin database, lalu coba lagi.';
 const PEKERJAAN_OPTIONS = [
   'Tidak / Belum Bekerja',
   'Ibu Rumah Tangga',
@@ -77,7 +76,7 @@ export function InputDataWarga() {
       payload.append('foto_aset', file);
     });
 
-    const response = await fetch(`${API_BASE_URL}/api/warga/upload-media/`, {
+    const response = await fetchWithNetworkHandling(`${API_BASE_URL}/api/warga/upload-media/`, {
       method: 'POST',
       body: payload,
     });
@@ -235,11 +234,7 @@ export function InputDataWarga() {
       navigate('/data-warga');
     } catch (error: any) {
       console.error(error);
-      alert(
-        `Gagal simpan data ke database: ${
-          error?.message || 'Terjadi gangguan pada database. Silakan coba lagi.'
-        }`
-      );
+      alert(`Gagal simpan data: ${error?.message || 'Terjadi kesalahan. Silakan coba lagi.'}`);
     }
   };
 

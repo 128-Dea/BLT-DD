@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from 'motion/react';
 import { ArrowLeft, User, Mail, Briefcase, Calendar, Edit2, Save, Trash2, Camera } from 'lucide-react';
 import { updateUserProfile } from '../utils/auth';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+import { API_BASE_URL, fetchWithNetworkHandling } from '../utils/api';
 
 export function Profile() {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export function Profile() {
     const payload = new FormData();
     payload.append('profile_photo', file);
 
-    const response = await fetch(`${API_BASE_URL}/api/profile/upload-photo/`, {
+    const response = await fetchWithNetworkHandling(`${API_BASE_URL}/api/profile/upload-photo/`, {
       method: 'POST',
       body: payload,
     });
@@ -93,9 +92,9 @@ export function Profile() {
       setSelectedPhotoFile(null);
       alert('Profil berhasil diperbarui!');
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Gagal memperbarui profil.');
+      alert(error?.message || 'Gagal memperbarui profil.');
     } finally {
       setIsSaving(false);
     }

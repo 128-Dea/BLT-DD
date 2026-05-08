@@ -2,6 +2,7 @@ import { RouterProvider } from 'react-router-dom';
 import { useEffect } from 'react';
 import { router } from './routes';
 import { syncAuthState } from './utils/auth';
+import { NetworkStatusNotifier } from './components/NetworkStatusNotifier';
 
 
 export default function App() {
@@ -10,5 +11,10 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <NetworkStatusNotifier />
+      <RouterProvider router={router} />
+    </>
+  );
 }
