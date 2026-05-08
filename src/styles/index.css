@@ -2,6 +2,95 @@
 @import './tailwind.css';
 @import './theme.css';
 
+body {
+  overflow-x: hidden;
+}
+
+.splash-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.92), transparent 92%);
+  transform: perspective(1200px) rotateX(72deg) scale(1.6) translateY(22%);
+  transform-origin: center;
+}
+
+.splash-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(10px);
+  opacity: 0.9;
+  animation: splash-float 11s ease-in-out infinite;
+}
+
+.splash-orb-a {
+  top: 10%;
+  left: 14%;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(153, 233, 255, 0.55), rgba(153, 233, 255, 0.06) 70%);
+}
+
+.splash-orb-b {
+  right: 8%;
+  top: 22%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(255, 215, 122, 0.38), rgba(255, 215, 122, 0.04) 70%);
+  animation-duration: 14s;
+}
+
+.splash-orb-c {
+  left: 28%;
+  bottom: 6%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(74, 128, 255, 0.36), rgba(74, 128, 255, 0.04) 72%);
+  animation-duration: 16s;
+}
+
+.splash-hero {
+  transform-style: preserve-3d;
+  animation: splash-hero-drift 7s ease-in-out infinite;
+}
+
+@keyframes splash-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(0, -28px, 0) scale(1.08);
+  }
+}
+
+@keyframes splash-hero-drift {
+  0%,
+  100% {
+    transform: rotateX(0deg) rotateY(0deg) translateY(0);
+  }
+
+  50% {
+    transform: rotateX(4deg) rotateY(-4deg) translateY(-8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .splash-grid {
+    background-size: 36px 36px;
+    transform: perspective(1000px) rotateX(74deg) scale(1.9) translateY(26%);
+  }
+
+  .splash-orb-a,
+  .splash-orb-b,
+  .splash-orb-c {
+    opacity: 0.7;
+    filter: blur(18px);
+  }
+}
+
 @media print {
   body * {
     visibility: hidden;

@@ -9,9 +9,12 @@ import { auth, db } from '../../firebase';
 import { restoreCurrentUser } from '../utils/auth';
 import { appendStoredWarga, getCurrentAppUser } from '../utils/wargaData';
 import { API_BASE_URL, fetchWithNetworkHandling } from '../utils/api';
-
-const DATABASE_SAVE_FAILED_MESSAGE =
-  'Data warga belum berhasil disimpan ke database. Salinan sementara tersimpan di browser ini. Periksa koneksi atau izin database, lalu coba lagi.';
+import {
+  getWargaProcessMessage,
+  WARGA_SAVE_FAILED_MESSAGE,
+  WARGA_SAVE_PENDING_MESSAGE,
+  WARGA_SAVE_SUCCESS_MESSAGE,
+} from '../utils/wargaMessages';
 const PEKERJAAN_OPTIONS = [
   'Tidak / Belum Bekerja',
   'Ibu Rumah Tangga',
@@ -227,14 +230,14 @@ export function InputDataWarga() {
 
       alert(
         syncStatus === 'synced'
-          ? 'Data warga berhasil disimpan'
-          : DATABASE_SAVE_FAILED_MESSAGE
+          ? WARGA_SAVE_SUCCESS_MESSAGE
+          : WARGA_SAVE_PENDING_MESSAGE
       );
 
       navigate('/data-warga');
     } catch (error: any) {
       console.error(error);
-      alert(`Gagal simpan data: ${error?.message || 'Terjadi kesalahan. Silakan coba lagi.'}`);
+      alert(getWargaProcessMessage(error, WARGA_SAVE_FAILED_MESSAGE));
     }
   };
 

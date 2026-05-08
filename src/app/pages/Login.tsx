@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, User, Building2, Eye, EyeOff } from "lucide-react";
+import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
 import {
   loginWithFirebase,
@@ -9,6 +9,7 @@ import {
   validateEmailByRole,
   type UserRole,
 } from "../utils/auth";
+import { AppLogo } from "../components/AppLogo";
 
 export function Login() {
   const navigate = useNavigate();
@@ -138,9 +139,9 @@ export function Login() {
                 type: "spring",
                 stiffness: 200,
               }}
-              className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4"
+              className="mb-4 inline-flex"
             >
-              <Building2 className="w-8 h-8 text-[#386fa4]" />
+              <AppLogo size="md" />
             </motion.div>
             <motion.h1
               initial={{ opacity: 0 }}

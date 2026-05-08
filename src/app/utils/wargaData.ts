@@ -10,7 +10,7 @@ import {
 import { FirebaseError } from 'firebase/app';
 import { db, isFirebaseConfigured } from '../../firebase';
 import type { AppUser } from './auth';
-import { isNetworkError, NETWORK_ERROR_MESSAGE } from './api';
+import { getWargaProcessMessage, WARGA_LOAD_FALLBACK_MESSAGE, WARGA_UPDATE_PENDING_MESSAGE } from './wargaMessages';
 
 export interface WargaRecord {
   id: string;
@@ -30,10 +30,6 @@ export interface WargaRecord {
 }
 
 const DATA_WARGA_KEY = 'dataWarga';
-const DATABASE_UPDATE_FAILED_MESSAGE =
-  'Perubahan data tersimpan di perangkat ini, tetapi gagal diproses di database. Periksa koneksi atau izin database, lalu coba lagi.';
-const DATABASE_LOAD_FAILED_MESSAGE =
-  'Koneksi ke database gagal. Data yang ditampilkan mungkin berasal dari penyimpanan perangkat ini.';
 
 const isPermissionError = (error: unknown) =>
   error instanceof FirebaseError &&
@@ -44,7 +40,7 @@ const notifyDatabaseProcessFailure = (error: unknown, fallbackMessage: string) =
   console.error('Gagal memproses data warga di Firestore:', error);
 
   if (typeof window !== 'undefined') {
-    window.alert(isNetworkError(error) ? NETWORK_ERROR_MESSAGE : fallbackMessage);
+    window.alert(getWargaProcessMessage(error, fallbackMessage));
   }
 };
 
@@ -174,10 +170,7 @@ export const loadAccessibleWarga = async (
 
     return sortWarga(Array.from(merged.values()));
   } catch (error) {
-    if (isNetworkError(error)) {
-      notifyDatabaseProcessFailure(error, DATABASE_LOAD_FAILED_MESSAGE);
-    }
-
+    notifyDatabaseProcessFailure(error, WARGA_LOAD_FALLBACK_MESSAGE);
     if (!isPermissionError(error)) {
       console.error('Gagal memuat data warga dari Firestore:', error);
     }
@@ -220,7 +213,7 @@ export const updateWargaById = async (
         )
       );
     } catch (error) {
-      notifyDatabaseProcessFailure(error, DATABASE_UPDATE_FAILED_MESSAGE);
+      notifyDatabaseProcessFailure(error, WARGA_UPDATE_PENDING_MESSAGE);
       if (!isPermissionError(error)) {
         throw error;
       }
@@ -237,7 +230,7 @@ export const deleteWargaById = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'dataWarga', id));
     } catch (error) {
-      notifyDatabaseProcessFailure(error, DATABASE_UPDATE_FAILED_MESSAGE);
+      notifyDatabaseProcessFailure(error, WARGA_UPDATE_PENDING_MESSAGE);
       if (!isPermissionError(error)) {
         throw error;
       }
