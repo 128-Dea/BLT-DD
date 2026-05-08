@@ -9,8 +9,28 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    function hasUserDoc() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasAdminEmail() {
+      return isSignedIn() &&
+        request.auth.token.email is string &&
+        request.auth.token.email.matches('.*@admin\\.com$');
+    }
+
+    function hasKadesEmail() {
+      return isSignedIn() &&
+        request.auth.token.email is string &&
+        request.auth.token.email.matches('.*@kades\\.com$');
+    }
+
     function hasRole(role) {
-      return isSignedIn() && currentUser().role == role;
+      return isSignedIn() && (
+        (hasUserDoc() && currentUser().role == role) ||
+        (role == 'perangkat_desa' && hasAdminEmail()) ||
+        (role == 'kepala_desa' && hasKadesEmail())
+      );
     }
 
     function isPerangkatDesa() {
@@ -37,6 +57,14 @@ service cloud.firestore {
       ]);
     }
 
+    function approvalFieldsUnchanged() {
+      return request.resource.data.statusApproval == resource.data.statusApproval &&
+        (
+          (!('statusApprovalAt' in resource.data) && !('statusApprovalAt' in request.resource.data)) ||
+          request.resource.data.statusApprovalAt == resource.data.statusApprovalAt
+        );
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow create: if isSignedIn() && request.auth.uid == userId;
@@ -53,8 +81,7 @@ service cloud.firestore {
         (isPerangkatDesa() &&
           isOwner() &&
           request.resource.data.ownerUid == resource.data.ownerUid &&
-          request.resource.data.statusApproval == resource.data.statusApproval &&
-          request.resource.data.statusApprovalAt == resource.data.statusApprovalAt) ||
+          approvalFieldsUnchanged()) ||
         (isKepalaDesa() && approvalOnlyChanged())
       );
 

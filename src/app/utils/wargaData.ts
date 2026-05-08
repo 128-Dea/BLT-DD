@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -65,9 +66,11 @@ const withSyncStatus = (
   firebaseSyncStatus: syncStatus,
 });
 
-const toFirestorePayload = (item: WargaRecord) => {
+const toFirestorePayload = (item: Partial<WargaRecord>) => {
   const { firebaseSyncStatus, ...payload } = item;
-  return payload;
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  );
 };
 
 export const saveAllStoredWarga = (items: WargaRecord[]) => {
@@ -153,38 +156,46 @@ const syncPendingAccessibleWarga = async (
   }
 
   const pendingItems = filterWargaByCurrentUser(getAllStoredWarga(), user).filter(
-    (item) =>
-      item.firebaseSyncStatus === 'pending_firestore' &&
-      !item.id.startsWith('local-')
+    (item) => item.firebaseSyncStatus === 'pending_firestore'
   );
 
   if (pendingItems.length === 0) {
     return;
   }
 
-  const syncedIds = new Set<string>();
+  const syncedItems = new Map<string, string>();
 
   await Promise.all(
     pendingItems.map(async (item) => {
       try {
+        if (item.id.startsWith('local-')) {
+          const { id, ...payload } = toFirestorePayload(item);
+          const docRef = await addDoc(collection(db, 'dataWarga'), payload);
+          syncedItems.set(item.id, docRef.id);
+          return;
+        }
+
         await setDoc(doc(db, 'dataWarga', item.id), toFirestorePayload(item), {
           merge: true,
         });
-        syncedIds.add(item.id);
+        syncedItems.set(item.id, item.id);
       } catch (error) {
         notifyDatabaseProcessFailure(error, WARGA_UPDATE_PENDING_MESSAGE);
       }
     })
   );
 
-  if (syncedIds.size === 0) {
+  if (syncedItems.size === 0) {
     return;
   }
 
   saveAllStoredWarga(
-    getAllStoredWarga().map((item) =>
-      syncedIds.has(item.id) ? withSyncStatus(item, 'synced') : item
-    )
+    getAllStoredWarga().map((item) => {
+      const syncedId = syncedItems.get(item.id);
+      return syncedId
+        ? withSyncStatus({ ...item, id: syncedId }, 'synced')
+        : item;
+    })
   );
 };
 
@@ -268,7 +279,9 @@ export const updateWargaById = async (
 
   if (db && isFirebaseConfigured && !id.startsWith('local-')) {
     try {
-      await setDoc(doc(db, 'dataWarga', id), updates, { merge: true });
+      await setDoc(doc(db, 'dataWarga', id), toFirestorePayload(updates), {
+        merge: true,
+      });
       saveAllStoredWarga(
         getAllStoredWarga().map((item) =>
           item.id === id

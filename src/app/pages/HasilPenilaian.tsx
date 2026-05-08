@@ -107,6 +107,8 @@ export function HasilPenilaian() {
     if (!selectedWarga) return;
 
     await updateWargaById(selectedWarga.id, {
+      nilaiAkhir: selectedWarga.nilaiAkhir,
+      status: selectedWarga.status,
       terkirim: true,
       statusApproval: selectedWarga.statusApproval || 'Pending',
     });
