@@ -10,6 +10,8 @@ import { restoreCurrentUser } from '../utils/auth';
 import { appendStoredWarga, getCurrentAppUser } from '../utils/wargaData';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const DATABASE_SAVE_FAILED_MESSAGE =
+  'Data warga tersimpan di perangkat ini, tetapi gagal disimpan ke database. Periksa koneksi atau izin database, lalu coba lagi.';
 
 const PEKERJAAN_OPTIONS = [
   'Tidak / Belum Bekerja',
@@ -209,6 +211,7 @@ export function InputDataWarga() {
           savedId = docRef.id;
           syncStatus = 'synced';
         } catch (firestoreError) {
+          console.error('Gagal menyimpan data warga ke Firestore:', firestoreError);
           if (!isFirestorePermissionError(firestoreError)) {
             throw firestoreError;
           }
@@ -223,12 +226,20 @@ export function InputDataWarga() {
 
       logActivity('tambah', `${formData.nik} - ${formData.nama}`, `Menambahkan data warga baru: ${formData.nama}`);
 
-      alert('Data warga berhasil disimpan');
+      alert(
+        syncStatus === 'synced'
+          ? 'Data warga berhasil disimpan'
+          : DATABASE_SAVE_FAILED_MESSAGE
+      );
 
       navigate('/data-warga');
     } catch (error: any) {
       console.error(error);
-      alert(`Gagal simpan data: ${error?.message || 'Terjadi kesalahan'}`);
+      alert(
+        `Gagal simpan data ke database: ${
+          error?.message || 'Terjadi gangguan pada database. Silakan coba lagi.'
+        }`
+      );
     }
   };
 

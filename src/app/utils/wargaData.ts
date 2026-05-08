@@ -29,11 +29,21 @@ export interface WargaRecord {
 }
 
 const DATA_WARGA_KEY = 'dataWarga';
+const DATABASE_UPDATE_FAILED_MESSAGE =
+  'Data tersimpan di perangkat ini, tetapi gagal disimpan ke database. Periksa koneksi atau izin database, lalu coba lagi.';
 
 const isPermissionError = (error: unknown) =>
   error instanceof FirebaseError &&
   (error.code === 'permission-denied' ||
     error.code === 'firestore/permission-denied');
+
+const notifyDatabaseSaveFailure = (error: unknown) => {
+  console.error('Gagal menyimpan data warga ke Firestore:', error);
+
+  if (typeof window !== 'undefined') {
+    window.alert(DATABASE_UPDATE_FAILED_MESSAGE);
+  }
+};
 
 export const getCurrentAppUser = (): AppUser | null => {
   return JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -203,6 +213,7 @@ export const updateWargaById = async (
         )
       );
     } catch (error) {
+      notifyDatabaseSaveFailure(error);
       if (!isPermissionError(error)) {
         throw error;
       }
