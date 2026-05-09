@@ -16,13 +16,14 @@ import {
   Eye,
 } from "lucide-react";
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
+  ComposedChart,
   PieChart,
   Pie,
   Cell,
@@ -194,6 +195,10 @@ const loadData = async () => {
     { status: "Disetujui", jumlah: approvedCount },
     { status: "Ditolak", jumlah: rejectedCount },
   ];
+
+  const approvalReferenceDurations = Array.from(
+  new Set(approvalData.map((item) => item.jumlah).filter((val) => val > 0))
+);
 
   const [selectedWarga, setSelectedWarga] =
     useState<PenilaianData | null>(null);
@@ -442,46 +447,79 @@ const loadData = async () => {
               Status Approval
             </h3>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={approvalData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#e5e7eb"
-                />
-                <XAxis dataKey="status" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar
-                  dataKey="jumlah"
-                  fill="url(#colorBar)"
-                  radius={[8, 8, 0, 0]}
-                />
-                <defs>
-                  <linearGradient
-                    id="colorBar"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor="#3b82f6"
-                      stopOpacity={1}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor="#60a5fa"
-                      stopOpacity={0.8}
-                    />
-                  </linearGradient>
-                </defs>
-              </BarChart>
+              <ComposedChart data={approvalData}>
+  <CartesianGrid
+    strokeDasharray="3 3"
+    stroke="#e5e7eb"
+  />
+  <XAxis dataKey="status" stroke="#6b7280" />
+  <YAxis stroke="#6b7280" />
+  {approvalReferenceDurations.map((val) => (
+  <ReferenceLine
+    key={val}
+    y={val}
+    stroke="#1d4ed8"
+    strokeWidth={2}
+    strokeDasharray="6 4"
+    shape={(props: any) => {
+      const { x1, y1, x2 } = props;
+
+      const matchingIndex = approvalData.reduce(
+        (lastIdx, d, i) => (d.jumlah === val ? i : lastIdx),
+        -1
+      );
+      if (matchingIndex < 0) return <></>;
+
+      const totalWidth = x2 - x1;
+      const barWidth = totalWidth / approvalData.length;
+      const xRight = x1 + barWidth * (matchingIndex + 1) - (barWidth * 0.15);
+      return (
+        <line
+          x1={x1}
+          y1={y1}
+          x2={xRight}
+          y2={y1}
+          stroke="#1d4ed8"
+          strokeWidth={2}
+          strokeDasharray="6 4"
+        />
+      );
+    }}
+  />
+))}
+  <Tooltip
+    contentStyle={{
+      backgroundColor: "#fff",
+      border: "1px solid #e5e7eb",
+      borderRadius: "8px",
+    }}
+  />
+  <Bar
+    dataKey="jumlah"
+    fill="url(#colorBar)"
+    radius={[8, 8, 0, 0]}
+  />
+  <defs>
+    <linearGradient
+      id="colorBar"
+      x1="0"
+      y1="0"
+      x2="0"
+      y2="1"
+    >
+      <stop
+        offset="0%"
+        stopColor="#3b82f6"
+        stopOpacity={1}
+      />
+      <stop
+        offset="100%"
+        stopColor="#60a5fa"
+        stopOpacity={0.8}
+      />
+    </linearGradient>
+  </defs>
+</ComposedChart>
             </ResponsiveContainer>
           </motion.div>
         </div>
