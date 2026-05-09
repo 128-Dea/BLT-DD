@@ -13,6 +13,10 @@ import {
   Award,
   Instagram,
 } from 'lucide-react';
+import teamPhoto from '../../assets/tim.jpeg';
+import nailongOne from '../../assets/nailong 1.jpeg';
+import nailongTwo from '../../assets/nailong 2.jpg';
+import nailongThree from '../../assets/nailong 3.jpeg';
 
 type Developer = {
   name: string;
@@ -28,7 +32,6 @@ type Developer = {
 export function About() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'app' | 'developers'>('app');
-  const teamPhoto = '/src/assets/tim.jpeg';
   const getGmailComposeUrl = (email: string) =>
     `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
 
@@ -36,7 +39,7 @@ export function About() {
     {
       name: 'Dewi Berliana',
       nim: '25051204284',
-      image: '/src/assets/nailong 1.jpeg',
+      image: nailongOne,
       emoji: '👩',
       github: 'https://github.com/Berliana003',
       linkedin: 'https://www.linkedin.com/in/dewi-berliana-9a342837a/',
@@ -46,7 +49,7 @@ export function About() {
     {
       name: 'Dea Suci Ramadani',
       nim: '25051204296',
-      image: '/src/assets/nailong 2.jpg',
+      image: nailongTwo,
       emoji: '👩',
       github: 'https://github.com/128-Dea',
       linkedin: 'https://www.linkedin.com/in/dea-suci-ramadani-99bb73401/',
@@ -56,7 +59,7 @@ export function About() {
     {
       name: 'Chantika Putri Meunasah',
       nim: '25051204264',
-      image: '/src/assets/nailong 3.jpeg',
+      image: nailongThree,
       emoji: '👩',
       github: 'https://github.com/Chantikaputrii',
       linkedin: 'https://www.linkedin.com/in/chantika-putri/',
@@ -280,8 +283,12 @@ export function About() {
                 >
                   <div className="text-center">
                     <motion.div
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.5 }}
+                      whileHover={{
+                        scale: 1.08,
+                        y: -8,
+                        boxShadow: '0 18px 35px rgba(56, 111, 164, 0.35)',
+                      }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
                       className="w-24 h-24 mx-auto bg-gradient-to-r from-[#386fa4] to-[#6aa4d3] rounded-full flex items-center justify-center text-5xl shadow-lg mb-4 overflow-hidden"
                     >
                       {dev.image ? (
