@@ -47,3 +47,33 @@ export const fetchWithNetworkHandling = async (
     throw error;
   }
 };
+
+export const getMediaUrlCandidates = (
+  source: string | undefined,
+  folder: 'rumah' | 'aset'
+) => {
+  const value = source?.trim();
+
+  if (!value) {
+    return [];
+  }
+
+  const candidates = [value];
+
+  if (value.startsWith('/media/')) {
+    candidates.push(`${API_BASE_URL}${value}`);
+  } else if (value.startsWith('media/')) {
+    candidates.push(`${API_BASE_URL}/${value}`);
+    candidates.push(`/${value}`);
+  } else if (value.startsWith('warga/')) {
+    candidates.push(`${API_BASE_URL}/media/${value}`);
+    candidates.push(`/media/${value}`);
+  } else if (!/^https?:\/\//i.test(value) && !value.startsWith('data:')) {
+    candidates.push(`${API_BASE_URL}/media/warga/${folder}/${value}`);
+    candidates.push(`/media/warga/${folder}/${value}`);
+  }
+
+  return candidates.filter(
+    (candidate, index) => candidates.indexOf(candidate) === index
+  );
+};

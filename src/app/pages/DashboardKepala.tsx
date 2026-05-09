@@ -14,6 +14,7 @@ import {
   Info,
   Trash2,
   Eye,
+  Search,
 } from "lucide-react";
 import {
   Bar,
@@ -30,6 +31,11 @@ import {
 } from "recharts";
 import { logoutFromFirebase } from "../utils/auth";
 import { logActivity } from "../utils/activityLogger";
+import {
+  API_BASE_URL,
+  fetchWithNetworkHandling,
+  getMediaUrlCandidates,
+} from "../utils/api";
 import {
   getAllStoredWarga,
   loadAccessibleWarga,
@@ -60,7 +66,129 @@ interface PenilaianData {
   kepemilikanUsaha?: string;
   riwayatBantuan?: string;
   kepemilikanAset?: string;
-fotoAset?: string[];
+  fotoAset?: string[];
+  fotoRumahCandidates?: string[];
+  fotoAsetCandidates?: string[][];
+}
+
+interface BackendMediaRecord {
+  nik?: string;
+  nama?: string;
+  tanggal?: string;
+  fotoRumah?: string;
+  fotoAset?: string[];
+}
+
+const parseFotoAset = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((foto): foto is string => typeof foto === "string" && foto.trim() !== "");
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((foto): foto is string => typeof foto === "string" && foto.trim() !== "")
+      : [value];
+  } catch {
+    return [value];
+  }
+};
+
+const uniqueValues = (values: string[]) =>
+  values.filter((value, index) => value && values.indexOf(value) === index);
+
+const normalizeKey = (value?: string) => (value || "").trim().toLowerCase();
+
+const loadBackendMediaRecords = async (): Promise<BackendMediaRecord[]> => {
+  try {
+    const response = await fetchWithNetworkHandling(`${API_BASE_URL}/api/warga/`);
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data.map((item: any) => ({
+      nik: item.nik,
+      nama: item.nama,
+      tanggal: item.tanggal,
+      fotoRumah: item.fotoRumah || item.foto_rumah,
+      fotoAset: parseFotoAset(item.fotoAset || item.foto_aset),
+    }));
+  } catch {
+    return [];
+  }
+};
+
+const findBackendMediaRecord = (
+  warga: any,
+  records: BackendMediaRecord[]
+) => {
+  const nik = normalizeKey(warga.nik);
+  const nama = normalizeKey(warga.nama);
+  const tanggal = normalizeKey(warga.tanggal);
+
+  return (
+    records.find(
+      (item) =>
+        normalizeKey(item.nik) === nik &&
+        normalizeKey(item.nama) === nama &&
+        normalizeKey(item.tanggal) === tanggal
+    ) ||
+    records.find(
+      (item) => normalizeKey(item.nik) === nik && normalizeKey(item.nama) === nama
+    )
+  );
+};
+
+const buildMediaCandidates = (
+  sources: Array<string | undefined>,
+  folder: "rumah" | "aset"
+) =>
+  uniqueValues(
+    sources.flatMap((source) => getMediaUrlCandidates(source, folder))
+  );
+
+function MediaImage({
+  sources,
+  alt,
+  className,
+}: {
+  sources?: string[];
+  alt: string;
+  className: string;
+}) {
+  const validSources = sources?.filter(Boolean) || [];
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [validSources.join("|")]);
+
+  if (validSources.length === 0 || sourceIndex >= validSources.length) {
+    return (
+      <div className="flex h-full min-h-[160px] w-full items-center justify-center px-4 text-center text-sm text-gray-500">
+        Foto tidak ditemukan di backend
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={validSources[sourceIndex]}
+      alt={alt}
+      className={className}
+      onError={() => setSourceIndex((currentIndex) => currentIndex + 1)}
+    />
+  );
 }
 
 export function DashboardKepala() {
@@ -71,6 +199,10 @@ export function DashboardKepala() {
   const [dataWarga, setDataWarga] = useState<PenilaianData[]>(
     [],
   );
+  const [backendMediaRecords, setBackendMediaRecords] = useState<
+    BackendMediaRecord[]
+  >([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
 useEffect(() => {
   loadData();
@@ -78,6 +210,8 @@ useEffect(() => {
 
 const loadData = async () => {
   const storedData = await loadAccessibleWarga();
+  const mediaRecords = await loadBackendMediaRecords();
+  setBackendMediaRecords(mediaRecords);
 
   if (!Array.isArray(storedData)) {
     console.error("Data warga di localStorage bukan array:", storedData);
@@ -88,7 +222,7 @@ const loadData = async () => {
   // Pastikan semua data punya statusApproval default = Pending
   const normalizedData = storedData.map((item: PenilaianData) => ({
     ...item,
-    statusApproval: item.statusApproval || "Pending",
+    statusApproval: item.statusApproval || (item as any).status_approval || "Pending",
   }));
   saveAllStoredWarga(
     getAllStoredWarga().map((item) => ({
@@ -154,7 +288,7 @@ const loadData = async () => {
     }
   };
 
-  const filteredData = dataWarga.filter((item) => {
+  const tabFilteredData = dataWarga.filter((item) => {
     if (selectedTab === "pending")
       return item.statusApproval === "Pending";
     if (selectedTab === "approved")
@@ -163,6 +297,23 @@ const loadData = async () => {
       return item.statusApproval === "Ditolak";
     return true;
   });
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredData = normalizedSearchTerm
+    ? tabFilteredData.filter((item) =>
+        [
+          item.nik,
+          item.nama,
+          item.alamat,
+          item.tanggal,
+          item.status,
+          item.statusApproval,
+        ]
+          .filter(Boolean)
+          .some((value) =>
+            String(value).toLowerCase().includes(normalizedSearchTerm)
+          )
+      )
+    : tabFilteredData;
 
   const pendingCount = dataWarga.filter(
     (d) => d.statusApproval === "Pending",
@@ -218,30 +369,56 @@ const loadData = async () => {
 
     if (!warga) return null;
 
+    const backendMedia = findBackendMediaRecord(warga, backendMediaRecords);
+    const fotoRumahCandidates = buildMediaCandidates(
+      [
+        warga.fotoRumah,
+        warga.foto_rumah,
+        warga.fotoRumahBackend,
+        warga.foto_rumah_backend,
+        backendMedia?.fotoRumah,
+      ],
+      "rumah"
+    );
+    const rawFotoAset = parseFotoAset(warga.fotoAset || warga.foto_aset);
+    const rawBackendFotoAset = parseFotoAset(
+      warga.fotoAsetBackend || warga.foto_aset_backend
+    );
+    const backendFotoAset = backendMedia?.fotoAset || [];
+    const fotoAset = rawFotoAset.length > 0 ? rawFotoAset : backendFotoAset;
+    const fotoAsetCandidates = fotoAset.map((foto, index) =>
+      buildMediaCandidates(
+        [foto, rawBackendFotoAset[index], backendFotoAset[index]],
+        "aset"
+      )
+    );
+
     return {
       id: warga.id,
       nik: warga.nik || "",
       nama: warga.nama || "",
       alamat: warga.alamat || "",
-      jumlahAnggota: warga.jumlahAnggota,
-      jumlahTanggungan: warga.jumlahTanggungan,
+      jumlahAnggota: warga.jumlahAnggota ?? warga.jumlah_anggota,
+      jumlahTanggungan: warga.jumlahTanggungan ?? warga.jumlah_tanggungan,
       pendapatan: warga.pendapatan,
       pekerjaan: warga.pekerjaan,
       tanggal: warga.tanggal || "",
       nilaiAkhir: warga.nilaiAkhir ?? 0,
       status: warga.status || "Tidak Layak",
-      statusApproval: validStatusApproval(warga.statusApproval),
+      statusApproval: validStatusApproval(warga.statusApproval ?? warga.status_approval),
       terkirim: warga.terkirim,
 
-      fotoRumah: warga.fotoRumah,
-      statusKK: warga.statusKK,
-      statusTinggal: warga.statusTinggal,
-      sumberAir: warga.sumberAir,
-      statusPekerjaan: warga.statusPekerjaan,
-      kepemilikanUsaha: warga.kepemilikanUsaha,
-      riwayatBantuan: warga.riwayatBantuan,
-      kepemilikanAset: warga.kepemilikanAset,
-      fotoAset: warga.fotoAset,
+      fotoRumah: fotoRumahCandidates[0],
+      statusKK: warga.statusKK ?? warga.status_kk,
+      statusTinggal: warga.statusTinggal ?? warga.status_tinggal,
+      sumberAir: warga.sumberAir ?? warga.sumber_air,
+      statusPekerjaan: warga.statusPekerjaan ?? warga.status_pekerjaan,
+      kepemilikanUsaha: warga.kepemilikanUsaha ?? warga.kepemilikan_usaha,
+      riwayatBantuan: warga.riwayatBantuan ?? warga.riwayat_bantuan,
+      kepemilikanAset: warga.kepemilikanAset ?? warga.kepemilikan_aset,
+      fotoAset: fotoAsetCandidates.map((candidates) => candidates[0]).filter(Boolean),
+      fotoRumahCandidates,
+      fotoAsetCandidates,
     };
   };
 
@@ -531,41 +708,54 @@ const loadData = async () => {
           className="bg-white rounded-xl shadow-sm border border-gray-200"
         >
           <div className="border-b border-gray-200 px-6">
-            <div className="flex space-x-8">
-              {[
-                {
-                  key: "pending",
-                  label: "Menunggu Review",
-                  count: pendingCount,
-                },
-                {
-                  key: "approved",
-                  label: "Disetujui",
-                  count: approvedCount,
-                },
-                {
-                  key: "rejected",
-                  label: "Ditolak",
-                  count: rejectedCount,
-                },
-                {
-                  key: "all",
-                  label: "Semua Data",
-                  count: dataWarga.length,
-                },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setSelectedTab(tab.key as any)}
-                  className={`py-4 border-b-2 font-medium transition ${
-                    selectedTab === tab.key
-                      ? "border-[#386fa4] text-[#386fa4]"
-                      : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  {tab.label} ({tab.count})
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="flex flex-wrap items-center gap-x-8">
+                {[
+                  {
+                    key: "pending",
+                    label: "Menunggu Review",
+                    count: pendingCount,
+                  },
+                  {
+                    key: "approved",
+                    label: "Disetujui",
+                    count: approvedCount,
+                  },
+                  {
+                    key: "rejected",
+                    label: "Ditolak",
+                    count: rejectedCount,
+                  },
+                  {
+                    key: "all",
+                    label: "Semua Data",
+                    count: dataWarga.length,
+                  },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setSelectedTab(tab.key as any)}
+                    className={`py-4 border-b-2 font-medium transition ${
+                      selectedTab === tab.key
+                        ? "border-[#386fa4] text-[#386fa4]"
+                        : "border-transparent text-gray-400 hover:text-gray-600"
+                    }`}
+                  >
+                    {tab.label} ({tab.count})
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative ml-auto w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Cari data warga..."
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-[#386fa4] focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
             </div>
           </div>
 
@@ -818,8 +1008,8 @@ const loadData = async () => {
                                   <p className="text-sm text-gray-600 mb-2">Foto Rumah</p>
                                   <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                                     <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[240px] max-h-[420px]">
-                                      <img
-                                        src={selectedWarga.fotoRumah}
+                                      <MediaImage
+                                        sources={selectedWarga.fotoRumahCandidates || [selectedWarga.fotoRumah]}
                                         alt="Foto Rumah"
                                         className="w-full h-full max-h-[280px] object-contain"
                                       />
@@ -907,8 +1097,8 @@ const loadData = async () => {
             className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
           >
             <div className="flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 min-h-[180px] max-h-[260px]">
-              <img
-                src={foto}
+              <MediaImage
+                sources={selectedWarga.fotoAsetCandidates?.[index] || [foto]}
                 alt={`Foto Aset ${index + 1}`}
                 className="w-full h-full max-h-[230px] object-contain"
               />
